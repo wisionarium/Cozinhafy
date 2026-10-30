@@ -1,0 +1,18 @@
+{
+  "name": "Bistrô Sabor & Arte - Autoatendimento",
+  "short_name": "Sabor & Arte",
+  "description": "Cardápio digital e autoatendimento com pedidos em tempo real",
+  "start_url": "/?pwa=1",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#d97706",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
