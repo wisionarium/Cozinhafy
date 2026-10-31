@@ -1439,7 +1439,7 @@ export function renderAdminView(container, onNavigateTable) {
 
       // Reset profile
       profileSection.querySelector('#btn-reset-profile').onclick = () => {
-        if (confirm('Deseja restaurar o nome e foto de capa padrão original (Bistrô Sabor & Arte)?')) {
+        if (confirm('Deseja restaurar o nome e foto de capa padrão original (CozinhaFy)?')) {
           store.resetRestaurantProfile();
           showToast('Perfil da empresa restaurado ao padrão original!', '↺');
           update();

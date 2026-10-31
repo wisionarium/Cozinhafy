@@ -1,6 +1,6 @@
 {
-  "name": "Bistrô Sabor & Arte - Autoatendimento",
-  "short_name": "Sabor & Arte",
+  "name": "CozinhaFy - Autoatendimento & Cozinha",
+  "short_name": "CozinhaFy",
   "description": "Cardápio digital e autoatendimento com pedidos em tempo real",
   "start_url": "/?pwa=1",
   "display": "standalone",
@@ -9,9 +9,15 @@
   "theme_color": "#d97706",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/CozinhaFy.jpg",
       "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/CozinhaFy.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]

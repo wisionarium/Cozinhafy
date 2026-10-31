@@ -27,15 +27,18 @@ export function renderKitchenView(container) {
     const header = document.createElement('div');
     header.className = 'kitchen-header';
     header.innerHTML = `
-      <div>
-        <h1 class="kitchen-title">
-          🍳 Cozinha KDS 
-          <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">
-            (Fila em Tempo Real)
-          </span>
-        </h1>
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
-          ${store.getRestaurantProfile().name} • Fila automática por ordem de chegada (FIFO).
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="${store.getRestaurantProfile().logo || '/CozinhaFy.jpg'}" alt="CozinhaFy" style="width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onerror="this.src='/CozinhaFy.jpg'" />
+        <div>
+          <h1 class="kitchen-title">
+            🍳 CozinhaFy KDS 
+            <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">
+              (Fila em Tempo Real)
+            </span>
+          </h1>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+            ${store.getRestaurantProfile().name} • Fila automática por ordem de chegada (FIFO).
+          </div>
         </div>
       </div>
 

@@ -10,10 +10,10 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_RESTAURANT_PROFILE = {
-  name: 'Bistrô Sabor & Arte',
-  tagline: '✨ Experiência Gastronômica',
+  name: 'CozinhaFy',
+  tagline: '✨ Pedidos & Cozinha em Tempo Real',
   heroBanner: '/images/hero.jpg',
-  logo: '',
+  logo: '/CozinhaFy.jpg',
   phone: '(11) 98765-4321',
   address: 'Rua das Flores, 123'
 };
@@ -241,6 +241,15 @@ class Store {
         this.profile = DEFAULT_RESTAURANT_PROFILE;
       }
     }
+
+    // Atualiza nome padrão e logotipo se ainda estiverem com o nome antigo
+    if (this.profile.name === 'Bistrô Sabor & Arte' || !this.profile.name) {
+      this.profile.name = 'CozinhaFy';
+    }
+    if (!this.profile.logo || this.profile.logo.includes('favicon')) {
+      this.profile.logo = '/CozinhaFy.jpg';
+    }
+    this.saveProfile();
 
     // Inicializa carrinho
     try {
