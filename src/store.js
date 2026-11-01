@@ -595,8 +595,8 @@ class Store {
   }
 
   createOrder({ table, customerName, items, total, deviceId = null, sessionId = null }) {
-    const nextNumber = this.orders.length > 0 
-      ? Math.max(...this.orders.map(o => o.orderNumber || 100)) + 1 
+    const nextNumber = this.orders.length > 0
+      ? Math.max(...this.orders.map(o => o.orderNumber || 100)) + 1
       : 101;
 
     const newOrder = {
@@ -946,9 +946,9 @@ class Store {
 
     const selKey = selectedOptions ? selectedOptions.slice().sort().join('|') : '';
     const existingIndex = this.cart[key].findIndex(
-      i => i.id === item.id && 
-           (i.notes || '') === (notes || '') &&
-           (i.selectedOptions ? i.selectedOptions.slice().sort().join('|') : '') === selKey
+      i => i.id === item.id &&
+        (i.notes || '') === (notes || '') &&
+        (i.selectedOptions ? i.selectedOptions.slice().sort().join('|') : '') === selKey
     );
 
     if (existingIndex > -1) {
@@ -1103,8 +1103,8 @@ class Store {
       .replace(/(^-|-$)/g, '') || ('cat-' + Date.now());
 
     // Evita IDs duplicados
-    const finalId = this.categories.some(c => c.id === slug) 
-      ? `${slug}-${Date.now().toString().slice(-4)}` 
+    const finalId = this.categories.some(c => c.id === slug)
+      ? `${slug}-${Date.now().toString().slice(-4)}`
       : slug;
 
     const newCategory = {
