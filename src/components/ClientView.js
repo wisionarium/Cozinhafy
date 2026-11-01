@@ -103,7 +103,7 @@ export function renderClientView(tableNumber, container) {
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          ${tableOrders.length > 0 ? `
+          ${!orderToDisplay && tableOrders.length > 0 ? `
             <button class="comanda-pill" id="btn-open-comanda" title="Ver consumo acumulado da mesa">
               📜 Comanda: R$ ${tableTotal.toFixed(2).replace('.', ',')}
             </button>
@@ -209,8 +209,13 @@ export function renderClientView(tableNumber, container) {
               <div class="step-label">3. Pronto</div>
             </div>
           </div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">
-            Cliente: <strong>${orderToDisplay.customerName}</strong> (${orderToDisplay.items.length} itens)
+          <div class="tracker-footer-row">
+            <div class="tracker-customer-info">
+              Cliente: <strong>${orderToDisplay.customerName}</strong> (${orderToDisplay.items.length} ${orderToDisplay.items.length === 1 ? 'item' : 'itens'})
+            </div>
+            <button class="tracker-comanda-badge" id="btn-tracker-comanda" type="button" title="Clique para abrir a comanda">
+              📜 Comanda: R$ ${tableTotal.toFixed(2).replace('.', ',')} ➔
+            </button>
           </div>
         ` : `
           <!-- Card de Aviso Limpo quando o pedido já está Pronto -->
@@ -223,28 +228,31 @@ export function renderClientView(tableNumber, container) {
             </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 6px;">
+          <div class="tracker-footer-row" style="margin-top: 10px;">
             <span style="font-size: 0.78rem; color: var(--text-muted);">
-              Deseja mais alguma coisa? Continue pedindo normalmente abaixo.
+              Deseja mais alguma coisa? Continue pedindo normalmente.
             </span>
-            <button id="btn-quick-comanda-view" class="dev-btn" style="padding: 4px 10px; font-size: 0.75rem;">
-              📜 Ver Comanda
+            <button class="tracker-comanda-badge" id="btn-quick-comanda-view" type="button" title="Clique para abrir a comanda">
+              📜 Comanda: R$ ${tableTotal.toFixed(2).replace('.', ',')} ➔
             </button>
           </div>
         `}
       `;
 
+      // Todo o card do rastreador abre a comanda ao ser clicado
+      trackerEl.onclick = (e) => {
+        if (e.target.closest('#btn-dismiss-tracker')) return;
+        renderComandaModal();
+      };
+
       if (isReady) {
         const dismissBtn = trackerEl.querySelector('#btn-dismiss-tracker');
         if (dismissBtn) {
-          dismissBtn.onclick = () => {
+          dismissBtn.onclick = (e) => {
+            e.stopPropagation();
             dismissedOrderIds.add(orderToDisplay.id);
             update();
           };
-        }
-        const quickComandaBtn = trackerEl.querySelector('#btn-quick-comanda-view');
-        if (quickComandaBtn) {
-          quickComandaBtn.onclick = () => renderComandaModal();
         }
       }
 
@@ -844,15 +852,12 @@ export function renderClientView(tableNumber, container) {
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button id="btn-comanda-close-action" class="dev-btn" style="flex: 1; justify-content: center; padding: 12px;">
-              Fechar
-            </button>
-            <button id="btn-comanda-more-food" class="dev-btn" style="flex: 1; justify-content: center; padding: 12px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="btn-comanda-more-food" class="dev-btn" style="flex: 1; justify-content: center; padding: 13px; font-weight: 700; font-size: 0.9rem;">
               🍽️ Pedir Mais
             </button>
             ${orders.length > 0 && !activeBillReq ? `
-              <button id="btn-comanda-request-bill" class="admin-btn-primary" style="flex: 1.3; justify-content: center; padding: 12px; background: #10b981; border-color: #10b981;">
+              <button id="btn-comanda-request-bill" class="admin-btn-primary" style="flex: 1.1; justify-content: center; padding: 13px; background: #10b981; border-color: #10b981; font-weight: 800; font-size: 0.9rem;">
                 🛎️ Pedir a Conta
               </button>
             ` : ''}
@@ -865,7 +870,6 @@ export function renderClientView(tableNumber, container) {
 
     const close = () => closeModal(modal);
     modal.querySelector('#modal-comanda-close').onclick = close;
-    modal.querySelector('#btn-comanda-close-action').onclick = close;
     modal.onclick = (e) => { if (e.target === modal) close(); };
 
     modal.querySelector('#btn-comanda-more-food').onclick = () => {

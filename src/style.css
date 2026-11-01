@@ -267,12 +267,61 @@ body {
   box-shadow: var(--shadow-md);
   animation: slideDown 0.3s ease-out;
   position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.active-order-tracker:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(26, 32, 46, 0.98);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
 }
 
 .active-order-tracker.is-ready {
   border-color: rgba(16, 185, 129, 0.5);
   background: linear-gradient(145deg, rgba(22, 27, 38, 0.98), rgba(16, 185, 129, 0.1));
   box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+}
+
+.active-order-tracker.is-ready:hover {
+  border-color: rgba(16, 185, 129, 0.8);
+}
+
+.tracker-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.tracker-customer-info {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.tracker-comanda-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.active-order-tracker:hover .tracker-comanda-badge,
+.tracker-comanda-badge:hover {
+  background: var(--primary);
+  color: #0c0f17;
+  border-color: var(--primary);
 }
 
 @keyframes slideDown {
