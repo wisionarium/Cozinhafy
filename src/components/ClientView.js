@@ -80,6 +80,12 @@ export function renderClientView(tableNumber, container) {
     const tableTotal = store.getSessionTotalBill(tableNumber, sessionId, deviceId);
     const restaurant = store.getRestaurantProfile();
 
+    const orderToDisplay = activeOrder || (
+      latestOrder && latestOrder.status === 'pronto' && !dismissedOrderIds.has(latestOrder.id)
+        ? latestOrder
+        : null
+    );
+
     document.title = `${restaurant.name} | Cardápio Digital`;
 
 
@@ -155,12 +161,6 @@ export function renderClientView(tableNumber, container) {
     }
 
     // --- 2. RASTREADOR DE PEDIDO (EM PREPARO OU RECÉM-CONCLUÍDO) ---
-    const orderToDisplay = activeOrder || (
-      latestOrder && latestOrder.status === 'pronto' && !dismissedOrderIds.has(latestOrder.id)
-        ? latestOrder
-        : null
-    );
-
     if (orderToDisplay) {
       const isReady = orderToDisplay.status === 'pronto';
       const trackerEl = document.createElement('div');
