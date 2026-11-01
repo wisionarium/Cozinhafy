@@ -591,6 +591,11 @@ body {
 /* ==========================================================
    MODAIS & DRAWERS
    ========================================================== */
+body.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -604,6 +609,7 @@ body {
   align-items: flex-end;
   justify-content: center;
   animation: fadeIn 0.2s ease-out;
+  overscroll-behavior: contain;
 }
 
 @keyframes fadeIn {
@@ -622,6 +628,7 @@ body {
   overflow-y: auto;
   border: 1px solid var(--border-subtle);
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 /* Modal Centralizado do Produto Selecionado com Barra Fixa */
@@ -644,6 +651,7 @@ body {
   position: relative;
   overflow: hidden;
   animation: modalScaleCenter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 @keyframes modalScaleCenter {
@@ -676,6 +684,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-dish-img {
@@ -1778,6 +1788,8 @@ body {
   display: flex;
   flex-direction: column;
   animation: modalSlideUp 0.25s ease-out;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes modalSlideUp {
@@ -2537,6 +2549,264 @@ body {
   color: var(--text-main);
   letter-spacing: -0.5px;
   margin: 0;
+}
+
+/* ==========================================================
+   SOLICITAÇÃO DE CONTA, FECHAMENTO DE COMANDAS & GESTÃO DE MESAS
+   ========================================================== */
+
+/* Banner de conta solicitada no cliente */
+.bill-requested-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 12px 0 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+.bill-pulse-icon {
+  font-size: 1.4rem;
+  animation: billPulse 1.6s infinite ease-in-out;
+}
+
+@keyframes billPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2) rotate(-8deg); }
+  100% { transform: scale(1); }
+}
+
+/* Opções de pagamento no modal */
+.pay-option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pay-option-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-focus);
+}
+
+.pay-option-card.selected {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--primary);
+}
+
+/* Alerta de conta no Admin */
+.admin-bill-alert-bar {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Barra superior da aba de mesas no Admin */
+.admin-tables-overview-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* Grid de mesas no Admin */
+.admin-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.admin-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-table-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-table-card.bill-requested {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+}
+
+.admin-table-card.is-active {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.admin-table-card.is-empty {
+  opacity: 0.65;
+}
+
+.admin-table-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-table-badge {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.table-client-name {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.table-bill-alert-box {
+  background: rgba(245, 158, 11, 0.12);
+  border-left: 3px solid var(--primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.table-items-compact-list {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.admin-table-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-close-table-action {
+  width: 100%;
+  padding: 10px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-close-table-action:hover {
+  opacity: 0.9;
+}
+
+.btn-view-as-client {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view-as-client:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.status-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.status-pill-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.status-pill-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-pill-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-pill-muted {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  border: 1px solid var(--border-subtle);
+}
+
+.kds-bill-req-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-kds-dismiss-old {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-kds-dismiss-old:hover {
+  background: rgba(239, 68, 68, 0.15);
 }
 
 

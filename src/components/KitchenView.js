@@ -50,6 +50,26 @@ export function renderKitchenView(container) {
     `;
     container.appendChild(header);
 
+    // --- ALERTA DE CONTAS SOLICITADAS ---
+    const allBillReqs = store.getAllBillRequests();
+    if (allBillReqs.length > 0) {
+      const billBanner = document.createElement('div');
+      billBanner.className = 'admin-bill-alert-bar';
+      billBanner.style.marginBottom = '16px';
+      billBanner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🚨</span>
+          <div>
+            <strong style="color: #fbbf24;">Atenção Cozinha: Contas Solicitadas!</strong>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+              ${allBillReqs.map(r => `Mesa ${r.table} (${r.paymentMethodLabel})`).join(' • ')}
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(billBanner);
+    }
+
     // --- ABAS DE FILTRO ---
     const filterBar = document.createElement('div');
     filterBar.style.cssText = 'display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto;';
@@ -135,6 +155,19 @@ export function renderKitchenView(container) {
             <span>CLIENTE:</span> <strong>${order.customerName.toUpperCase()}</strong>
           </div>
 
+          ${store.getBillRequestForTable(order.table) ? `
+            <div style="margin: 6px 0; padding: 6px 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 800; color: #f87171;">
+              🚨 Mesa pediu a conta (${store.getBillRequestForTable(order.table).paymentMethodLabel})
+            </div>
+          ` : ''}
+
+          ${elapsedMinutes > 180 ? `
+            <div style="margin: 6px 0; padding: 6px 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); font-size: 0.75rem; color: #fbbf24; display: flex; justify-content: space-between; align-items: center;">
+              <span>⚠️ Pedido antigo (> 3h)</span>
+              <button class="btn-kds-dismiss-old" data-id="${order.id}">Descartar</button>
+            </div>
+          ` : ''}
+
           <div class="kds-receipt-divider"></div>
 
           <div class="kds-items-list">
@@ -218,6 +251,15 @@ export function renderKitchenView(container) {
       if (doneBtn) {
         doneBtn.onclick = () => {
           store.updateOrderStatus(order.id, 'pronto');
+        };
+      }
+
+      const dismissOldBtn = card.querySelector('.btn-kds-dismiss-old');
+      if (dismissOldBtn) {
+        dismissOldBtn.onclick = () => {
+          if (confirm(`Descartar este pedido esquecido #${order.orderNumber}?`)) {
+            store.deleteOrder(order.id);
+          }
         };
       }
 

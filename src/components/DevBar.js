@@ -32,7 +32,7 @@ export function renderDevBar(currentView, currentTable, onViewChange) {
         🍳 Cozinha (KDS)
       </button>
       <button class="dev-btn ${currentView === 'admin' ? 'active' : ''}" data-view="admin">
-        📊 Admin
+        📊 Admin ${store.getAllBillRequests().length > 0 ? `(${store.getAllBillRequests().length} 🚨)` : ''}
       </button>
     </div>
 

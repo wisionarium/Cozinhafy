@@ -20,24 +20,25 @@ function getOrCreateClientSession(table) {
   } catch (e) {}
 
   const now = Date.now();
-  const ONE_HOUR = 60 * 60 * 1000;
+  const THREE_HOURS = 3 * 60 * 60 * 1000;
 
-  // Lógica de Expiração Automática (Visita da Manhã vs Tarde, ou > 45 minutos após entrega)
+  // Lógica de Expiração Automática (Hard Timeout de 3 horas ou após entrega)
   let shouldExpire = false;
   if (session) {
-    const sessionOrders = store.getOrdersForSession(padTable, session.sessionId, deviceId);
-    const hasPending = sessionOrders.some(o => o.status !== 'pronto');
-    const allDone = sessionOrders.length > 0 && sessionOrders.every(o => o.status === 'pronto');
-    const latestOrder = sessionOrders[0];
-
-    // Se todos os pedidos foram entregues e passaram mais de 45 minutos desde a entrega:
-    if (allDone && latestOrder?.completedAt && (now - latestOrder.completedAt > 45 * 60 * 1000)) {
+    // 1. HARD TIMEOUT: Passaram mais de 3 horas desde a abertura da visita -> EXPIRA SEMPRE (mesmo com pedidos esquecidos)
+    if (session.startedAt && (now - session.startedAt > THREE_HOURS)) {
       shouldExpire = true;
     }
 
-    // Se passou mais de 2 horas desde a abertura da visita sem nenhum prato em preparo:
-    if (!hasPending && (now - session.startedAt > 2 * ONE_HOUR)) {
-      shouldExpire = true;
+    if (!shouldExpire) {
+      const sessionOrders = store.getOrdersForSession(padTable, session.sessionId, deviceId);
+      const allDone = sessionOrders.length > 0 && sessionOrders.every(o => o.status === 'pronto');
+      const latestOrder = sessionOrders[0];
+
+      // Se todos os pedidos foram entregues e passaram mais de 45 minutos desde a entrega:
+      if (allDone && latestOrder?.completedAt && (now - latestOrder.completedAt > 45 * 60 * 1000)) {
+        shouldExpire = true;
+      }
     }
   }
 
@@ -119,6 +120,38 @@ export function renderClientView(tableNumber, container) {
     const comandaBtn = heroEl.querySelector('#btn-open-comanda');
     if (comandaBtn) {
       comandaBtn.onclick = () => renderComandaModal();
+    }
+
+    // --- 1.1 BANNER DE CONTA SOLICITADA (SE HOUVER) ---
+    const activeBillReq = store.getBillRequestForTable(tableNumber);
+    if (activeBillReq) {
+      const billNotice = document.createElement('div');
+      billNotice.className = 'bill-requested-banner';
+      billNotice.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+          <div class="bill-pulse-icon">🛎️</div>
+          <div>
+            <div style="font-weight: 800; font-size: 0.92rem; color: #fbbf24;">
+              Conta Solicitada!
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              O garçom foi avisado e está a caminho com a conta (${activeBillReq.paymentMethodLabel}).
+            </div>
+          </div>
+        </div>
+        <button id="btn-cancel-bill-request" class="dev-btn" style="padding: 6px 12px; font-size: 0.78rem;" title="Cancelar chamado da conta">
+          Cancelar
+        </button>
+      `;
+      container.appendChild(billNotice);
+
+      const cancelBtn = billNotice.querySelector('#btn-cancel-bill-request');
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          store.cancelBillRequest(tableNumber);
+          update();
+        };
+      }
     }
 
     // --- 2. RASTREADOR DE PEDIDO (EM PREPARO OU RECÉM-CONCLUÍDO) ---
@@ -314,6 +347,32 @@ export function renderClientView(tableNumber, container) {
     setupLazyPrefetch(container);
   }
 
+  // --- GERENCIADOR DE MODAIS & BODY SCROLL LOCK ---
+  function openModal(modalEl) {
+    document.body.appendChild(modalEl);
+    document.body.classList.add('modal-open');
+
+    // Impede que o scroll da roda do mouse escape para o fundo caso o cursor esteja no backdrop
+    modalEl.addEventListener('wheel', (e) => {
+      if (e.target === modalEl) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    modalEl.addEventListener('touchmove', (e) => {
+      if (e.target === modalEl) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
+  function closeModal(modalEl) {
+    modalEl.remove();
+    if (!document.querySelector('.modal-overlay')) {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
   // --- MODAL DE DETALHES / PERSONALIZAÇÃO DO PRATO (COM OPÇÕES ON/OFF) ---
   function openDishModal(dish) {
     let qty = 1;
@@ -423,9 +482,9 @@ export function renderClientView(tableNumber, container) {
       </div>
     `;
 
-    document.body.appendChild(modal);
+    openModal(modal);
 
-    const close = () => modal.remove();
+    const close = () => closeModal(modal);
     modal.querySelector('#modal-close').onclick = close;
     modal.onclick = (e) => { if (e.target === modal) close(); };
 
@@ -575,9 +634,9 @@ export function renderClientView(tableNumber, container) {
       </div>
     `;
 
-    document.body.appendChild(modal);
+    openModal(modal);
 
-    const close = () => modal.remove();
+    const close = () => closeModal(modal);
     modal.querySelector('#cart-close').onclick = close;
     modal.onclick = (e) => { if (e.target === modal) close(); };
 
@@ -684,6 +743,12 @@ export function renderClientView(tableNumber, container) {
     const { deviceId, sessionId } = getOrCreateClientSession(tableNumber);
     const orders = store.getOrdersForSession(tableNumber, sessionId, deviceId);
     const totalBill = store.getSessionTotalBill(tableNumber, sessionId, deviceId);
+    const restaurant = store.getRestaurantProfile();
+    const hasServiceFee = Boolean(restaurant.serviceFeeEnabled);
+    const serviceFeePercent = restaurant.serviceFeePercent || 10;
+    const serviceFeeAmount = hasServiceFee ? (totalBill * (serviceFeePercent / 100)) : 0;
+    const grandTotal = totalBill + serviceFeeAmount;
+    const activeBillReq = store.getBillRequestForTable(tableNumber);
 
     modal.innerHTML = `
       <div class="admin-modal-card" style="max-width: 480px;">
@@ -697,7 +762,23 @@ export function renderClientView(tableNumber, container) {
           <button class="btn-close" id="modal-comanda-close">&times;</button>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 12px; margin: 16px 0; max-height: 380px; overflow-y: auto;">
+        ${activeBillReq ? `
+          <div style="margin: 12px 0 4px 0; padding: 10px 14px; background: rgba(245, 158, 11, 0.12); border-left: 3px solid var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 800; font-size: 0.85rem; color: var(--primary);">
+                🛎️ Conta Solicitada
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">
+                Forma: ${activeBillReq.paymentMethodLabel}
+              </div>
+            </div>
+            <button id="btn-modal-cancel-bill" class="dev-btn" style="padding: 4px 8px; font-size: 0.75rem;">
+              Cancelar Chamado
+            </button>
+          </div>
+        ` : ''}
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin: 16px 0; max-height: 340px; overflow-y: auto;">
           ${orders.length === 0 ? `
             <div style="text-align: center; color: var(--text-muted); padding: 30px 0;">
               Nenhum pedido realizado nesta mesa nesta visita.
@@ -744,28 +825,45 @@ export function renderClientView(tableNumber, container) {
         </div>
 
         <div style="border-top: 1px solid var(--border-subtle); padding-top: 14px; margin-top: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
-            <span style="font-size: 1rem; font-weight: 700;">Total da Comanda:</span>
-            <span style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">
-              R$ ${totalBill.toFixed(2).replace('.', ',')}
-            </span>
+          <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px;">
+            ${hasServiceFee ? `
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+                <span>Consumo:</span>
+                <span>R$ ${totalBill.toFixed(2).replace('.', ',')}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+                <span>Taxa de Serviço (${serviceFeePercent}%):</span>
+                <span>R$ ${serviceFeeAmount.toFixed(2).replace('.', ',')}</span>
+              </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+              <span style="font-size: 1rem; font-weight: 700;">Total da Comanda:</span>
+              <span style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">
+                R$ ${grandTotal.toFixed(2).replace('.', ',')}
+              </span>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button id="btn-comanda-close-action" class="dev-btn" style="flex: 1; justify-content: center; padding: 12px;">
               Fechar
             </button>
-            <button id="btn-comanda-more-food" class="admin-btn-primary" style="flex: 1; justify-content: center; padding: 12px;">
-              🍽️ Pedir Mais Itens
+            <button id="btn-comanda-more-food" class="dev-btn" style="flex: 1; justify-content: center; padding: 12px;">
+              🍽️ Pedir Mais
             </button>
+            ${orders.length > 0 && !activeBillReq ? `
+              <button id="btn-comanda-request-bill" class="admin-btn-primary" style="flex: 1.3; justify-content: center; padding: 12px; background: #10b981; border-color: #10b981;">
+                🛎️ Pedir a Conta
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
     `;
 
-    document.body.appendChild(modal);
+    openModal(modal);
 
-    const close = () => modal.remove();
+    const close = () => closeModal(modal);
     modal.querySelector('#modal-comanda-close').onclick = close;
     modal.querySelector('#btn-comanda-close-action').onclick = close;
     modal.onclick = (e) => { if (e.target === modal) close(); };
@@ -773,6 +871,160 @@ export function renderClientView(tableNumber, container) {
     modal.querySelector('#btn-comanda-more-food').onclick = () => {
       close();
       window.scrollTo({ top: 250, behavior: 'smooth' });
+    };
+
+    const cancelBillBtn = modal.querySelector('#btn-modal-cancel-bill');
+    if (cancelBillBtn) {
+      cancelBillBtn.onclick = () => {
+        store.cancelBillRequest(tableNumber);
+        close();
+        update();
+      };
+    }
+
+    const requestBillBtn = modal.querySelector('#btn-comanda-request-bill');
+    if (requestBillBtn) {
+      requestBillBtn.onclick = () => {
+        close();
+        renderPaymentMethodModal(grandTotal, sessionId, deviceId);
+      };
+    }
+  }
+
+  // --- MODAL DE ESCOLHA DE FORMA DE PAGAMENTO (OPÇÃO B - RESTAURANTE) ---
+  function renderPaymentMethodModal(grandTotal, sessionId, deviceId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+
+    let selectedPayment = 'cartao_credito';
+
+    modal.innerHTML = `
+      <div class="admin-modal-card" style="max-width: 460px;">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">🛎️ Pedir a Conta (Mesa ${tableNumber})</h2>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              Total: <strong style="color: var(--primary);">R$ ${grandTotal.toFixed(2).replace('.', ',')}</strong> • Selecione como deseja pagar:
+            </div>
+          </div>
+          <button class="btn-close" id="modal-pay-close">&times;</button>
+        </div>
+
+        <div style="margin: 16px 0;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label class="pay-option-card selected" data-method="cartao_credito">
+              <input type="radio" name="pay-method" value="cartao_credito" checked style="accent-color: var(--primary);" />
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 0.9rem;">💳 Cartão de Crédito</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">O garçom levará a maquininha até a sua mesa</div>
+              </div>
+            </label>
+
+            <label class="pay-option-card" data-method="cartao_debito">
+              <input type="radio" name="pay-method" value="cartao_debito" style="accent-color: var(--primary);" />
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 0.9rem;">💳 Cartão de Débito</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">O garçom levará a maquininha até a sua mesa</div>
+              </div>
+            </label>
+
+            <label class="pay-option-card" data-method="pix">
+              <input type="radio" name="pay-method" value="pix" style="accent-color: var(--primary);" />
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 0.9rem;">📱 Pix</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Pague com o garçom pelo QR Code da conta</div>
+              </div>
+            </label>
+
+            <label class="pay-option-card" data-method="dinheiro">
+              <input type="radio" name="pay-method" value="dinheiro" style="accent-color: var(--primary);" />
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 0.9rem;">💵 Dinheiro em Espécie</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Pagamento diretamente ao garçom / caixa</div>
+              </div>
+            </label>
+          </div>
+
+          <div class="form-field" style="margin-top: 14px;">
+            <label class="form-label" for="pay-notes" style="font-size: 0.8rem;">
+              Observação (opcional):
+            </label>
+            <input 
+              type="text" 
+              id="pay-notes" 
+              class="input-field" 
+              style="margin-top: 4px; font-size: 0.85rem;" 
+              placeholder="Ex: Preciso de troco para R$ 100..." 
+            />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button id="modal-pay-cancel" class="dev-btn" style="flex: 1; justify-content: center; padding: 12px;">
+            Voltar
+          </button>
+          <button id="modal-pay-confirm" class="admin-btn-primary" style="flex: 1.5; justify-content: center; padding: 12px; background: #10b981; border-color: #10b981;">
+            🛎️ Chamar Garçom com a Conta
+          </button>
+        </div>
+      </div>
+    `;
+
+    openModal(modal);
+
+    const close = () => closeModal(modal);
+    modal.querySelector('#modal-pay-close').onclick = close;
+    modal.querySelector('#modal-pay-cancel').onclick = close;
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+
+    modal.querySelectorAll('.pay-option-card').forEach(card => {
+      card.onclick = () => {
+        modal.querySelectorAll('.pay-option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+        selectedPayment = card.dataset.method;
+      };
+    });
+
+    modal.querySelector('#modal-pay-confirm').onclick = () => {
+      const notes = modal.querySelector('#pay-notes').value.trim();
+      store.requestBill(tableNumber, {
+        paymentMethod: selectedPayment,
+        notes,
+        sessionId,
+        deviceId
+      });
+      close();
+      update();
+    };
+  }
+
+  // --- MODAL DE SUCESSO QUANDO A CONTA É ENCERRADA PELO RESTAURANTE ---
+  function renderBillClosedSuccessModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="admin-modal-card" style="max-width: 440px; text-align: center; padding: 32px 24px;">
+        <div style="font-size: 3.5rem; margin-bottom: 12px;">✨</div>
+        <h2 style="font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; margin-bottom: 8px;">
+          Conta Encerrada com Sucesso!
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
+          Agradecemos a sua preferência e esperamos vê-lo novamente em breve no <strong>${store.getRestaurantProfile().name}</strong>.
+        </p>
+        <button id="btn-new-visit" class="admin-btn-primary" style="width: 100%; justify-content: center; padding: 14px; font-size: 1rem;">
+          🍽️ Iniciar Novo Atendimento
+        </button>
+      </div>
+    `;
+    openModal(modal);
+    try {
+      confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+    } catch (e) {}
+    modal.querySelector('#btn-new-visit').onclick = () => {
+      closeModal(modal);
+      update();
     };
   }
 
@@ -825,9 +1077,20 @@ export function renderClientView(tableNumber, container) {
         } catch (e) {}
       }
     }
+    if (eventData?.action === 'BILL_CLOSED') {
+      const padTable = String(tableNumber).padStart(2, '0');
+      if (eventData.table === padTable) {
+        localStorage.removeItem(`bistro_session_table_${padTable}`);
+        renderBillClosedSuccessModal();
+        return;
+      }
+    }
     update();
   });
 
   update();
-  return () => unsubscribe();
+  return () => {
+    document.body.classList.remove('modal-open');
+    unsubscribe();
+  };
 }

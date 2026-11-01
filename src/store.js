@@ -6,7 +6,8 @@ const STORAGE_KEYS = {
   MENU: 'bistro_menu_v1',
   CATEGORIES: 'bistro_categories_v1',
   PROFILE: 'bistro_profile_v1',
-  CART: 'bistro_cart_v1'
+  CART: 'bistro_cart_v1',
+  BILL_REQUESTS: 'bistro_bill_requests_v1'
 };
 
 const DEFAULT_RESTAURANT_PROFILE = {
@@ -15,7 +16,9 @@ const DEFAULT_RESTAURANT_PROFILE = {
   heroBanner: '/images/hero.jpg',
   logo: '/CozinhaFy.jpg',
   phone: '(11) 98765-4321',
-  address: 'Rua das Flores, 123'
+  address: 'Rua das Flores, 123',
+  serviceFeeEnabled: false,
+  serviceFeePercent: 10
 };
 
 
@@ -110,7 +113,9 @@ const mapRowToProfile = (row) => ({
   heroBanner: row.hero_banner,
   logo: row.logo,
   phone: row.phone,
-  address: row.address
+  address: row.address,
+  serviceFeeEnabled: row.service_fee_enabled !== undefined ? Boolean(row.service_fee_enabled) : false,
+  serviceFeePercent: row.service_fee_percent ? parseFloat(row.service_fee_percent) : 10
 });
 
 // Mock inicial de pedidos para demonstração
@@ -258,6 +263,13 @@ class Store {
       this.cart = {};
     }
 
+    // Inicializa solicitações de conta / encerramento
+    try {
+      this.billRequests = JSON.parse(localStorage.getItem(STORAGE_KEYS.BILL_REQUESTS) || '{}');
+    } catch {
+      this.billRequests = {};
+    }
+
     // Escuta sincronizações vindas de outras abas
     if (channel) {
       channel.onmessage = (event) => {
@@ -286,6 +298,7 @@ class Store {
       this.categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
       this.profile = { ...DEFAULT_RESTAURANT_PROFILE, ...JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILE) || '{}') };
       this.cart = JSON.parse(localStorage.getItem(STORAGE_KEYS.CART) || '{}');
+      this.billRequests = JSON.parse(localStorage.getItem(STORAGE_KEYS.BILL_REQUESTS) || '{}');
     } catch (e) {
       console.error('Erro ao recarregar storage', e);
     }
@@ -546,6 +559,36 @@ class Store {
     });
   }
 
+  playBillAlert() {
+    if (!this.soundEnabled) return;
+    this.initAudio();
+    if (!this.audioContext) return;
+
+    const ctx = this.audioContext;
+    const now = ctx.currentTime;
+
+    // Dois sinos brilhantes anunciando solicitação de conta
+    const playNote = (freq, start, duration) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.35, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(start);
+      osc.stop(start + duration);
+    };
+
+    playNote(783.99, now, 0.4);         // Sol (G5)
+    playNote(1046.50, now + 0.18, 0.6); // Dó (C6)
+  }
+
   // --- GESTÃO DE PEDIDOS ---
   saveOrders() {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(this.orders));
@@ -638,16 +681,29 @@ class Store {
   }
 
   // --- MÉTODOS DE SESSÃO / DISPOSITIVO ANÔNIMO (ISOLAMENTO DE COMANDAS) ---
-  getOrdersForSession(table, sessionId, deviceId = null) {
+  getOrdersForSession(table, sessionId, deviceId = null, maxAgeHours = 3) {
     const padTable = String(table).padStart(2, '0');
+    const now = Date.now();
+    const cutoff = maxAgeHours ? (now - (maxAgeHours * 60 * 60 * 1000)) : 0;
+
     return this.orders.filter(o => {
       if (o.table !== padTable) return false;
-      if (sessionId && o.sessionId) {
+
+      // Pedidos criados há mais de 3 horas não pertencem à visita ativa do cliente
+      if (cutoff && o.createdAt && o.createdAt < cutoff) {
+        return false;
+      }
+
+      // Se temos sessionId, ela tem precedência estrita
+      if (sessionId) {
         return o.sessionId === sessionId;
       }
+
+      // Apenas se não houver sessionId usamos deviceId
       if (deviceId && o.deviceId) {
         return o.deviceId === deviceId;
       }
+
       return false;
     });
   }
@@ -665,6 +721,211 @@ class Store {
   getSessionTotalBill(table, sessionId, deviceId = null) {
     const orders = this.getOrdersForSession(table, sessionId, deviceId);
     return orders.reduce((sum, o) => sum + (o.total || 0), 0);
+  }
+
+  // --- SOLICITAÇÃO DE CONTA E ENCERRAMENTO DE COMANDAS (OPÇÃO B - RESTAURANTE) ---
+  saveBillRequests() {
+    localStorage.setItem(STORAGE_KEYS.BILL_REQUESTS, JSON.stringify(this.billRequests));
+  }
+
+  requestBill(table, { paymentMethod = 'cartao_credito', customerName = '', notes = '', sessionId = null, deviceId = null } = {}) {
+    const padTable = String(table).padStart(2, '0');
+    const total = this.getSessionTotalBill(table, sessionId, deviceId) || this.getTableTotalBill(table);
+
+    const paymentLabels = {
+      cartao_credito: 'Cartão de Crédito 💳',
+      cartao_debito: 'Cartão de Débito 💳',
+      pix: 'Pix 📱',
+      dinheiro: 'Dinheiro 💵'
+    };
+
+    const requestData = {
+      table: padTable,
+      paymentMethod,
+      paymentMethodLabel: paymentLabels[paymentMethod] || paymentMethod,
+      customerName: customerName || 'Cliente',
+      notes: notes || '',
+      sessionId,
+      deviceId,
+      total,
+      requestedAt: Date.now()
+    };
+
+    this.billRequests[padTable] = requestData;
+    this.saveBillRequests();
+
+    // Toca som de alerta para o Admin / Cozinha / Garçom
+    this.playBillAlert();
+
+    // Notifica todas as abas
+    this.broadcast('SYNC', { action: 'BILL_REQUESTED', table: padTable, request: requestData });
+
+    return requestData;
+  }
+
+  cancelBillRequest(table) {
+    const padTable = String(table).padStart(2, '0');
+    if (this.billRequests[padTable]) {
+      delete this.billRequests[padTable];
+      this.saveBillRequests();
+      this.broadcast('SYNC', { action: 'BILL_REQUEST_CANCELLED', table: padTable });
+      return true;
+    }
+    return false;
+  }
+
+  getBillRequestForTable(table) {
+    const padTable = String(table).padStart(2, '0');
+    return this.billRequests[padTable] || null;
+  }
+
+  getAllBillRequests() {
+    return Object.values(this.billRequests);
+  }
+
+  closeTableBill(table, { paymentMethod = null, sessionId = null } = {}) {
+    const padTable = String(table).padStart(2, '0');
+
+    // Conclui todos os pedidos pendentes da mesa
+    let modified = false;
+    this.orders.forEach(o => {
+      if (o.table === padTable) {
+        if (o.status !== 'pronto') {
+          o.status = 'pronto';
+          o.completedAt = Date.now();
+          modified = true;
+        }
+      }
+    });
+
+    if (modified) {
+      this.saveOrders();
+    }
+
+    // Remove solicitação de conta se houver
+    if (this.billRequests[padTable]) {
+      delete this.billRequests[padTable];
+      this.saveBillRequests();
+    }
+
+    // Limpa o carrinho da mesa
+    this.clearCart(table);
+
+    // Toca som de confirmação
+    this.playReadyBell();
+
+    // Notifica todas as abas (o cliente receberá e resetará a sessão dele!)
+    this.broadcast('SYNC', {
+      action: 'BILL_CLOSED',
+      table: padTable,
+      sessionId,
+      timestamp: Date.now()
+    });
+
+    return true;
+  }
+
+  deleteOrder(orderId) {
+    const prevLen = this.orders.length;
+    this.orders = this.orders.filter(o => o.id !== orderId);
+    if (this.orders.length !== prevLen) {
+      this.saveOrders();
+      this.broadcast('SYNC', { action: 'ORDER_DELETED', orderId });
+      if (isSupabaseConfigured && supabase) {
+        supabase.from('orders').delete().eq('id', orderId).catch(console.error);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  cleanupOldOrders(maxHours = 3) {
+    const cutoff = Date.now() - (maxHours * 60 * 60 * 1000);
+    let modified = false;
+    this.orders.forEach(o => {
+      if (o.createdAt < cutoff && o.status !== 'pronto') {
+        o.status = 'pronto';
+        o.completedAt = o.completedAt || Date.now();
+        modified = true;
+      }
+    });
+
+    // Também remove solicitações de conta com mais de 3 horas
+    let removedReqs = false;
+    Object.keys(this.billRequests).forEach(tbl => {
+      if (this.billRequests[tbl]?.requestedAt < cutoff) {
+        delete this.billRequests[tbl];
+        removedReqs = true;
+      }
+    });
+
+    if (removedReqs) {
+      this.saveBillRequests();
+    }
+
+    if (modified) {
+      this.saveOrders();
+      this.broadcast('SYNC', { action: 'ORDERS_CLEANED' });
+    }
+    return modified || removedReqs;
+  }
+
+  getTablesOverview() {
+    const tablesMap = {};
+    const now = Date.now();
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+
+    // Constrói mapa das mesas com pedidos
+    this.orders.forEach(order => {
+      const table = order.table;
+      if (!tablesMap[table]) {
+        tablesMap[table] = {
+          table,
+          orders: [],
+          total: 0,
+          hasPending: false,
+          latestOrderTime: 0,
+          customerNames: new Set()
+        };
+      }
+      tablesMap[table].orders.push(order);
+      tablesMap[table].total += (order.total || 0);
+      if (order.status !== 'pronto') {
+        tablesMap[table].hasPending = true;
+      }
+      if (order.createdAt > tablesMap[table].latestOrderTime) {
+        tablesMap[table].latestOrderTime = order.createdAt;
+      }
+      if (order.customerName) {
+        tablesMap[table].customerNames.add(order.customerName);
+      }
+    });
+
+    // Mesas conhecidas padrão para garantir presença mesmo se vazias
+    ['01', '02', '03', '04', '05', '06'].forEach(tbl => {
+      if (!tablesMap[tbl]) {
+        tablesMap[tbl] = {
+          table: tbl,
+          orders: [],
+          total: 0,
+          hasPending: false,
+          latestOrderTime: 0,
+          customerNames: new Set()
+        };
+      }
+    });
+
+    return Object.values(tablesMap).map(t => {
+      const billReq = this.getBillRequestForTable(t.table);
+      const isOld = t.latestOrderTime > 0 && (now - t.latestOrderTime > THREE_HOURS);
+      return {
+        ...t,
+        customerNames: Array.from(t.customerNames),
+        billRequest: billReq,
+        isOlderThan3Hours: isOld,
+        isOpen: t.orders.length > 0 && (!isOld || t.hasPending || Boolean(billReq))
+      };
+    }).sort((a, b) => a.table.localeCompare(b.table));
   }
 
   // --- CARRINHO ---
@@ -941,7 +1202,9 @@ class Store {
       heroBanner: updatedData.heroBanner || this.profile.heroBanner,
       logo: updatedData.logo !== undefined ? updatedData.logo : this.profile.logo,
       phone: updatedData.phone !== undefined ? updatedData.phone.trim() : this.profile.phone,
-      address: updatedData.address !== undefined ? updatedData.address.trim() : this.profile.address
+      address: updatedData.address !== undefined ? updatedData.address.trim() : this.profile.address,
+      serviceFeeEnabled: updatedData.serviceFeeEnabled !== undefined ? Boolean(updatedData.serviceFeeEnabled) : this.profile.serviceFeeEnabled,
+      serviceFeePercent: updatedData.serviceFeePercent !== undefined ? parseFloat(updatedData.serviceFeePercent) : (this.profile.serviceFeePercent || 10)
     };
 
     this.saveProfile();

@@ -2,7 +2,7 @@ import { store } from '../store.js';
 import QRCode from 'qrcode';
 
 export function renderAdminView(container, onNavigateTable) {
-  let activeTab = 'products'; // 'products' ou 'metrics'
+  let activeTab = 'tables'; // 'tables', 'products', 'profile', 'metrics'
   let selectedTable = '04';
   let searchQuery = '';
   let selectedCategory = 'todos';
@@ -22,6 +22,27 @@ export function renderAdminView(container, onNavigateTable) {
       toast.style.transition = 'opacity 0.3s ease';
       setTimeout(() => toast.remove(), 300);
     }, 2800);
+  }
+
+  // Gerenciador de Bloqueio de Scroll ao abrir modais no Admin
+  function attachModal(modalEl) {
+    document.body.appendChild(modalEl);
+    document.body.classList.add('modal-open');
+
+    modalEl.addEventListener('wheel', (e) => {
+      if (e.target === modalEl) e.preventDefault();
+    }, { passive: false });
+
+    modalEl.addEventListener('touchmove', (e) => {
+      if (e.target === modalEl) e.preventDefault();
+    }, { passive: false });
+
+    return () => {
+      modalEl.remove();
+      if (!document.querySelector('.modal-overlay')) {
+        document.body.classList.remove('modal-open');
+      }
+    };
   }
 
   // ==========================================================
@@ -107,9 +128,7 @@ export function renderAdminView(container, onNavigateTable) {
       </div>
     `;
 
-    document.body.appendChild(modal);
-
-    const closeModal = () => modal.remove();
+    const closeModal = attachModal(modal);
     modal.querySelector('#modal-cat-close').onclick = closeModal;
     modal.querySelector('#modal-cat-cancel').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
@@ -215,9 +234,7 @@ export function renderAdminView(container, onNavigateTable) {
       </div>
     `;
 
-    document.body.appendChild(modal);
-
-    const closeModal = () => modal.remove();
+    const closeModal = attachModal(modal);
     modal.querySelector('#modal-del-cat-close').onclick = closeModal;
     modal.querySelector('#btn-cancel-del-cat').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
@@ -339,8 +356,8 @@ export function renderAdminView(container, onNavigateTable) {
     }
 
     renderContent();
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    const closeModal = attachModal(modal);
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
   }
 
   // ==========================================================
@@ -592,9 +609,7 @@ export function renderAdminView(container, onNavigateTable) {
       </div>
     `;
 
-    document.body.appendChild(modal);
-
-    const closeModal = () => modal.remove();
+    const closeModal = attachModal(modal);
     modal.querySelector('#modal-close-btn').onclick = closeModal;
     modal.querySelector('#modal-cancel-btn').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
@@ -795,9 +810,7 @@ export function renderAdminView(container, onNavigateTable) {
       </div>
     `;
 
-    document.body.appendChild(modal);
-
-    const closeModal = () => modal.remove();
+    const closeModal = attachModal(modal);
     modal.querySelector('#modal-close-btn').onclick = closeModal;
     modal.querySelector('#btn-cancel-del').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
@@ -838,9 +851,7 @@ export function renderAdminView(container, onNavigateTable) {
       </div>
     `;
 
-    document.body.appendChild(modal);
-
-    const closeModal = () => modal.remove();
+    const closeModal = attachModal(modal);
     modal.querySelector('#modal-close-btn').onclick = closeModal;
     modal.querySelector('#btn-cancel-reset').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
@@ -888,21 +899,71 @@ export function renderAdminView(container, onNavigateTable) {
     `;
     container.appendChild(header);
 
+    // --- ALERTAS DE CONTAS SOLICITADAS NO TOPO DO ADMIN ---
+    const allBillReqs = store.getAllBillRequests();
+    if (allBillReqs.length > 0) {
+      allBillReqs.forEach(req => {
+        const alertBanner = document.createElement('div');
+        alertBanner.className = 'admin-bill-alert-bar';
+        alertBanner.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+            <span style="font-size: 1.6rem;">🚨</span>
+            <div>
+              <div style="font-weight: 800; font-size: 1rem; color: #fbbf24;">
+                Mesa ${req.table} Solicitou a Conta!
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                Forma solicitada: <strong>${req.paymentMethodLabel}</strong> • Total: <strong style="color: var(--primary);">R$ ${(req.total || 0).toFixed(2).replace('.', ',')}</strong>
+                ${req.notes ? ` • Obs: <em>${req.notes}</em>` : ''}
+              </div>
+            </div>
+          </div>
+          <button class="admin-btn-primary btn-close-table-quick" data-table="${req.table}" style="padding: 10px 18px; font-size: 0.85rem; background: #10b981; border-color: #10b981; white-space: nowrap;">
+            ✅ Fechar Conta & Liberar Mesa ${req.table}
+          </button>
+        `;
+        container.appendChild(alertBanner);
+
+        alertBanner.querySelector('.btn-close-table-quick').onclick = () => {
+          if (confirm(`Confirmar o recebimento e fechamento da conta da Mesa ${req.table}?`)) {
+            store.closeTableBill(req.table);
+            showToast(`Conta da Mesa ${req.table} fechada com sucesso!`, '✅');
+            update();
+          }
+        };
+      });
+    }
+
     // --- ABAS DE NAVEGAÇÃO DO ADMIN ---
+    const tablesOverview = store.getTablesOverview();
+    const activeTablesCount = tablesOverview.filter(t => t.isOpen).length;
+
     const navTabs = document.createElement('div');
     navTabs.className = 'admin-nav-tabs';
     navTabs.innerHTML = `
+      <button class="admin-nav-btn ${activeTab === 'tables' ? 'active' : ''}" id="tab-btn-tables" style="position: relative;">
+        🍽️ Mesas & Comandas (${activeTablesCount} ativas)
+        ${allBillReqs.length > 0 ? `
+          <span style="background: #ef4444; color: #fff; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; margin-left: 6px; font-weight: 800;">
+            ${allBillReqs.length} ${allBillReqs.length === 1 ? 'conta' : 'contas'}
+          </span>
+        ` : ''}
+      </button>
       <button class="admin-nav-btn ${activeTab === 'products' ? 'active' : ''}" id="tab-btn-products">
-        🍽️ Gestão do Cardápio (${store.menu.length} pratos)
+        📋 Cardápio (${store.menu.length})
       </button>
       <button class="admin-nav-btn ${activeTab === 'profile' ? 'active' : ''}" id="tab-btn-profile">
-        🏪 Perfil da Empresa
+        🏪 Perfil & Configurações
       </button>
       <button class="admin-nav-btn ${activeTab === 'metrics' ? 'active' : ''}" id="tab-btn-metrics">
-        📊 Visão Geral, Vendas & QR Codes
+        📊 Métricas & QR Codes
       </button>
     `;
 
+    navTabs.querySelector('#tab-btn-tables').onclick = () => {
+      activeTab = 'tables';
+      update();
+    };
     navTabs.querySelector('#tab-btn-products').onclick = () => {
       activeTab = 'products';
       update();
@@ -917,6 +978,176 @@ export function renderAdminView(container, onNavigateTable) {
     };
 
     container.appendChild(navTabs);
+
+    // ==========================================================
+    // ABA: GESTÃO DE MESAS & COMANDAS
+    // ==========================================================
+    if (activeTab === 'tables') {
+      const tablesSection = document.createElement('div');
+
+      const tables = store.getTablesOverview();
+      const hasOldOrders = tables.some(t => t.isOlderThan3Hours && t.orders.length > 0);
+
+      // Barra superior com métricas e limpeza de visitas antigas
+      const overviewBar = document.createElement('div');
+      overviewBar.className = 'admin-tables-overview-bar';
+      overviewBar.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Mesas Ativas</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: var(--primary);">
+              ${tables.filter(t => t.isOpen).length} de ${tables.length}
+            </div>
+          </div>
+          <div style="width: 1px; height: 32px; background: var(--border-subtle);"></div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Contas Solicitadas</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: ${allBillReqs.length > 0 ? '#ef4444' : 'var(--text-main)'};">
+              ${allBillReqs.length}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          ${hasOldOrders ? `
+            <button id="btn-cleanup-old" class="dev-btn" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); padding: 8px 14px; font-size: 0.85rem;" title="Encerra visitas antigas de mais de 3 horas atrás">
+              🧹 Encerrar Pedidos Antigos (> 3h)
+            </button>
+          ` : ''}
+          <button id="btn-refresh-tables" class="dev-btn" style="padding: 8px 14px; font-size: 0.85rem;">
+            🔄 Atualizar
+          </button>
+        </div>
+      `;
+      tablesSection.appendChild(overviewBar);
+
+      if (hasOldOrders) {
+        const cleanupBtn = overviewBar.querySelector('#btn-cleanup-old');
+        if (cleanupBtn) {
+          cleanupBtn.onclick = () => {
+            if (confirm('Deseja encerrar e arquivar todos os pedidos com mais de 3 horas (pedidos da véspera)? As mesas ficarão limpas imediatamente.')) {
+              store.cleanupOldOrders(3);
+              showToast('Pedidos antigos encerrados com sucesso!', '🧹');
+              update();
+            }
+          };
+        }
+      }
+
+      overviewBar.querySelector('#btn-refresh-tables').onclick = () => update();
+
+      // Grid de mesas
+      const tablesGrid = document.createElement('div');
+      tablesGrid.className = 'admin-tables-grid';
+
+      tables.forEach(t => {
+        const isRequested = Boolean(t.billRequest);
+        const card = document.createElement('div');
+        card.className = `admin-table-card ${isRequested ? 'bill-requested' : (t.isOpen ? 'is-active' : 'is-empty')}`;
+
+        const elapsedMin = t.latestOrderTime ? Math.floor((Date.now() - t.latestOrderTime) / (1000 * 60)) : 0;
+
+        card.innerHTML = `
+          <div class="admin-table-card-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="admin-table-badge">Mesa ${t.table}</span>
+              ${t.isOpen && t.customerNames.length > 0 ? `
+                <span class="table-client-name">${t.customerNames[0]}</span>
+              ` : ''}
+            </div>
+            <div>
+              ${isRequested ? `
+                <span class="status-pill status-pill-danger">🚨 CONTA PEDIDA</span>
+              ` : (t.hasPending ? `
+                <span class="status-pill status-pill-warning">🟡 Cozinha</span>
+              ` : (t.isOpen ? `
+                <span class="status-pill status-pill-success">🟢 Em Consumo</span>
+              ` : `
+                <span class="status-pill status-pill-muted">⚪ Livre</span>
+              `))}
+            </div>
+          </div>
+
+          ${isRequested ? `
+            <div class="table-bill-alert-box">
+              <div style="font-weight: 800; font-size: 0.85rem; color: #fbbf24;">
+                Forma: ${t.billRequest.paymentMethodLabel}
+              </div>
+              ${t.billRequest.notes ? `<div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Obs: ${t.billRequest.notes}</div>` : ''}
+            </div>
+          ` : ''}
+
+          ${t.isOlderThan3Hours && t.orders.length > 0 ? `
+            <div style="padding: 6px 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); font-size: 0.75rem; color: #f87171;">
+              ⚠️ Visita antiga de mais de 3h atrás (ontem)
+            </div>
+          ` : ''}
+
+          <div class="admin-table-card-body">
+            ${t.orders.length === 0 ? `
+              <div style="text-align: center; color: var(--text-dim); padding: 24px 0; font-size: 0.85rem;">
+                Mesa livre no momento.<br>Aguardando novo cliente.
+              </div>
+            ` : `
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">${t.orders.length} ${t.orders.length === 1 ? 'pedido' : 'pedidos'} (${elapsedMin} min)</span>
+                <span style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">
+                  R$ ${t.total.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+
+              <div class="table-items-compact-list">
+                ${t.orders.flatMap(o => o.items || []).slice(0, 4).map(i => `
+                  <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); padding: 2px 0;">
+                    <span>${i.quantity}x ${i.name}</span>
+                    <span>R$ ${(i.price * i.quantity).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                `).join('')}
+                ${t.orders.flatMap(o => o.items || []).length > 4 ? `
+                  <div style="font-size: 0.72rem; color: var(--text-dim); text-align: center; margin-top: 2px;">
+                    + outros itens...
+                  </div>
+                ` : ''}
+              </div>
+            `}
+          </div>
+
+          <div class="admin-table-card-footer">
+            ${t.orders.length > 0 ? `
+              <button class="btn-close-table-action" data-table="${t.table}">
+                ✅ Fechar Conta & Liberar Mesa
+              </button>
+            ` : ''}
+            <button class="btn-view-as-client" data-table="${t.table}">
+              📱 Ver Cardápio da Mesa
+            </button>
+          </div>
+        `;
+
+        const closeBtn = card.querySelector('.btn-close-table-action');
+        if (closeBtn) {
+          closeBtn.onclick = () => {
+            if (confirm(`Deseja encerrar e liberar a Mesa ${t.table}? A comanda será finalizada e a mesa zerada para novos clientes.`)) {
+              store.closeTableBill(t.table);
+              showToast(`Mesa ${t.table} encerrada e liberada com sucesso!`, '✅');
+              update();
+            }
+          };
+        }
+
+        const viewBtn = card.querySelector('.btn-view-as-client');
+        if (viewBtn) {
+          viewBtn.onclick = () => {
+            if (onNavigateTable) onNavigateTable(t.table);
+          };
+        }
+
+        tablesGrid.appendChild(card);
+      });
+
+      tablesSection.appendChild(tablesGrid);
+      container.appendChild(tablesSection);
+    }
 
     // ==========================================================
     // ABA 1: GESTÃO DO CARDÁPIO & PRODUTOS (CRUD COMPLETO)
@@ -1224,6 +1455,26 @@ export function renderAdminView(container, onNavigateTable) {
               </div>
             </div>
 
+            <!-- Taxa de Serviço (10% Opcional) -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px;">
+              <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                <input 
+                  type="checkbox" 
+                  id="comp-service-fee" 
+                  style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 2px;" 
+                  ${profile.serviceFeeEnabled ? 'checked' : ''}
+                />
+                <div>
+                  <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">
+                    Cobrar Taxa de Serviço de 10% (Opcional)
+                  </div>
+                  <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                    Quando ativado, calcula e exibe automaticamente a taxa de 10% de serviço no detalhamento da comanda e fechamento de conta.
+                  </div>
+                </div>
+              </label>
+            </div>
+
             <!-- Banner de Capa -->
             <div class="form-field">
               <label class="form-label">
@@ -1461,13 +1712,16 @@ export function renderAdminView(container, onNavigateTable) {
           return;
         }
 
+        const serviceFeeEnabled = profileSection.querySelector('#comp-service-fee')?.checked || false;
+
         store.updateRestaurantProfile({
           name,
           tagline,
           phone,
           address,
           heroBanner: draftBanner,
-          logo: draftLogo
+          logo: draftLogo,
+          serviceFeeEnabled
         });
 
         showToast(`Dados de "${name}" salvos com sucesso!`, '🏪');
@@ -1676,5 +1930,8 @@ export function renderAdminView(container, onNavigateTable) {
   });
 
   update();
-  return () => unsubscribe();
+  return () => {
+    document.body.classList.remove('modal-open');
+    unsubscribe();
+  };
 }
