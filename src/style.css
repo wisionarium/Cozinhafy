@@ -174,8 +174,20 @@ body {
 }
 
 .app-container.mobile-mode {
-  max-width: 500px;
+  max-width: 540px;
+  margin: 0 auto;
+  min-height: 100vh;
   padding: 0 0 100px 0;
+  position: relative;
+  background: var(--bg-main);
+}
+
+@media (min-width: 600px) {
+  .app-container.mobile-mode {
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.6);
+  }
 }
 
 /* ==========================================================
@@ -427,6 +439,91 @@ body {
 }
 
 /* ==========================================================
+   BARRA DE CATEGORIAS CIRCULARES (ÍCONE EM CIMA, TEXTO EM BAIXO - CONFORME IMAGEM 2)
+   ========================================================== */
+.categories-circle-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 10px 16px 14px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categories-circle-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-circle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  flex-shrink: 0;
+  min-width: 62px;
+}
+
+.cat-circle-btn:hover {
+  transform: translateY(-2px);
+}
+
+.cat-circle-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.22s ease;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.cat-circle-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.cat-circle-label {
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 6px;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  transition: color 0.2s ease;
+}
+
+/* Estado Ativo da Categoria Circular */
+.cat-circle-btn.active .cat-circle-icon-wrap {
+  background: linear-gradient(135deg, var(--primary), #fbbf24);
+  border-color: transparent;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.42);
+  transform: scale(1.06);
+}
+
+.cat-circle-btn.active .cat-circle-icon {
+  transform: scale(1.1);
+}
+
+.cat-circle-btn.active .cat-circle-label {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* ==========================================================
    BARRA DE BUSCA RÁPIDA (MODERNA & MINIMALISTA)
    ========================================================== */
 .menu-search-bar {
@@ -490,34 +587,20 @@ body {
 }
 
 /* ==========================================================
-   GRID DE 2 COLUNAS VISUAL (BASEADO NA IMAGEM DE REFERÊNCIA)
+   GRID DE 2 COLUNAS VISUAL (ESTRITAMENTE 2 COLUNAS NO CELULAR E NO PC)
    ========================================================== */
 .menu-grid {
-  padding: 12px 14px 40px;
+  padding: 10px 14px 40px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 1fr) !important;
   gap: 12px;
 }
 
 @media (min-width: 600px) {
   .menu-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 16px 20px 48px;
-  }
-}
-
-@media (min-width: 900px) {
-  .menu-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .menu-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px;
+    padding: 12px 16px 48px;
   }
 }
 

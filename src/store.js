@@ -194,6 +194,53 @@ class Store {
       }
     }
 
+    // Assegura que a categoria Café exista e fique no início
+    if (!this.categories.some(c => c.id === 'cafe')) {
+      this.categories.unshift({ id: 'cafe', label: 'Café', icon: '☕' });
+      this.saveCategories();
+    }
+
+    // Assegura que haja itens de Café no cardápio
+    if (!this.menu.some(m => m.category === 'cafe')) {
+      const sampleCafes = [
+        {
+          id: 'cafe-1',
+          name: 'Espresso Duplo Especial',
+          category: 'cafe',
+          price: 9.90,
+          description: 'Café 100% arábica especial moído na hora, extração perfeita com crema espessa e aveludada.',
+          image: '/images/drink.jpg',
+          tag: 'Especial ☕',
+          prepTime: '3-5 min',
+          available: true
+        },
+        {
+          id: 'cafe-2',
+          name: 'Cappuccino Italiano',
+          category: 'cafe',
+          price: 14.50,
+          description: 'Espresso com leite vaporizado sedoso, espuma densa e toque suave de cacau belga.',
+          image: '/images/dessert.jpg',
+          tag: 'Cremoso 🥛',
+          prepTime: '5 min',
+          available: true
+        },
+        {
+          id: 'cafe-3',
+          name: 'Iced Vanilla Latte',
+          category: 'cafe',
+          price: 16.90,
+          description: 'Café gelado com leite fresco integral, cubos de gelo cristalino e xarope de baunilha Bourbon.',
+          image: '/images/drink.jpg',
+          tag: 'Gelado 🧊',
+          prepTime: '5 min',
+          available: true
+        }
+      ];
+      this.menu.unshift(...sampleCafes);
+      this.saveMenu();
+    }
+
     // Assegura que a categoria Almoço exista
     if (!this.categories.some(c => c.id === 'almoco')) {
       this.categories.unshift({ id: 'almoco', label: 'Almoço', icon: '🍛' });

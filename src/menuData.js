@@ -1,5 +1,38 @@
 export const INITIAL_MENU = [
   {
+    id: 'cafe-1',
+    name: 'Espresso Duplo Especial',
+    category: 'cafe',
+    price: 9.90,
+    description: 'Café 100% arábica especial moído na hora, extração perfeita com crema espessa e aveludada.',
+    image: '/images/drink.jpg',
+    tag: 'Especial ☕',
+    prepTime: '3-5 min',
+    available: true
+  },
+  {
+    id: 'cafe-2',
+    name: 'Cappuccino Italiano',
+    category: 'cafe',
+    price: 14.50,
+    description: 'Espresso com leite vaporizado sedoso, espuma densa e toque suave de cacau belga.',
+    image: '/images/dessert.jpg',
+    tag: 'Cremoso 🥛',
+    prepTime: '5 min',
+    available: true
+  },
+  {
+    id: 'cafe-3',
+    name: 'Iced Vanilla Latte',
+    category: 'cafe',
+    price: 16.90,
+    description: 'Café gelado com leite fresco integral, cubos de gelo cristalino e xarope de baunilha Bourbon.',
+    image: '/images/drink.jpg',
+    tag: 'Gelado 🧊',
+    prepTime: '5 min',
+    available: true
+  },
+  {
     id: 'prato-1',
     name: 'Bife de Chorizo Nobre',
     category: 'principais',
@@ -127,12 +160,13 @@ export const INITIAL_MENU = [
 ];
 
 export const INITIAL_CATEGORIES = [
-  { id: 'almoco', label: 'Almoço', icon: '🍛' },
-  { id: 'principais', label: 'Pratos Principais', icon: '🥩' },
-  { id: 'pizzas', label: 'Pizzas', icon: '🍕' },
-  { id: 'entradas', label: 'Entradas', icon: '🥖' },
+  { id: 'cafe', label: 'Café', icon: '☕' },
+  { id: 'principais', label: 'Pratos', icon: '🍽️' },
   { id: 'bebidas', label: 'Bebidas', icon: '🍹' },
-  { id: 'sobremesas', label: 'Sobremesas', icon: '🍨' }
+  { id: 'sobremesas', label: 'Sobremesa', icon: '🍨' },
+  { id: 'pizzas', label: 'Pizzas', icon: '🍕' },
+  { id: 'almoco', label: 'Almoço', icon: '🍛' },
+  { id: 'entradas', label: 'Entradas', icon: '🥖' }
 ];
 
 export const CATEGORIES = [

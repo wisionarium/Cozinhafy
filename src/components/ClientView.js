@@ -323,23 +323,49 @@ export function renderClientView(tableNumber, container) {
       };
     }
 
-    // --- 3. BARRA DE CATEGORIAS DINÂMICAS ---
-    const dynamicCategories = [
-      { id: 'todos', label: 'Todos', icon: '🍽️' },
-      ...store.getCategories()
+    // --- 3. BARRA DE CATEGORIAS VISUAIS (ÍCONE EM CIMA, TEXTO EM BAIXO - CONFORME IMAGEM 2) ---
+    // Ordem solicitada: Café, Pratos, Bebidas, Sobremesa e Todos
+    const requestedCategories = [
+      { id: 'cafe', label: 'Café', icon: '☕' },
+      { id: 'pratos', label: 'Pratos', icon: '🍽️' },
+      { id: 'bebidas', label: 'Bebidas', icon: '🍹' },
+      { id: 'sobremesas', label: 'Sobremesa', icon: '🍨' },
+      { id: 'todos', label: 'Todos', icon: '📋' }
+    ];
+
+    // Inclui categorias cadastradas adicionais (ex: Pizzas)
+    const storeCategories = store.getCategories();
+    const extraCategories = storeCategories.filter(c => 
+      !['cafe', 'pratos', 'principais', 'almoco', 'bebidas', 'sobremesas', 'todos'].includes(c.id)
+    );
+
+    const displayCategories = [
+      requestedCategories[0], // Café
+      requestedCategories[1], // Pratos
+      ...extraCategories,     // ex: Pizzas
+      requestedCategories[2], // Bebidas
+      requestedCategories[3], // Sobremesa
+      requestedCategories[4]  // Todos
     ];
 
     const catBar = document.createElement('div');
-    catBar.className = 'categories-bar';
-    dynamicCategories.forEach(cat => {
-      const chip = document.createElement('button');
-      chip.className = `category-chip ${activeCategory === cat.id ? 'active' : ''}`;
-      chip.innerHTML = `${cat.icon} ${cat.label}`;
-      chip.onclick = () => {
+    catBar.className = 'categories-circle-bar';
+    displayCategories.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `cat-circle-btn ${activeCategory === cat.id ? 'active' : ''}`;
+      btn.title = `Ver ${cat.label}`;
+      btn.innerHTML = `
+        <div class="cat-circle-icon-wrap">
+          <span class="cat-circle-icon">${cat.icon}</span>
+        </div>
+        <span class="cat-circle-label">${cat.label}</span>
+      `;
+      btn.onclick = () => {
         activeCategory = cat.id;
         update();
       };
-      catBar.appendChild(chip);
+      catBar.appendChild(btn);
     });
     container.appendChild(catBar);
 
@@ -353,7 +379,23 @@ export function renderClientView(tableNumber, container) {
 
       const filteredMenu = store.menu
         .filter(item => {
-          const matchCat = activeCategory === 'todos' || item.category === activeCategory;
+          const matchCat = (() => {
+            if (activeCategory === 'todos') return true;
+            if (activeCategory === 'pratos') {
+              return ['pratos', 'principais', 'almoco', 'entradas'].includes(item.category);
+            }
+            if (activeCategory === 'cafe') {
+              return item.category === 'cafe';
+            }
+            if (activeCategory === 'bebidas') {
+              return item.category === 'bebidas';
+            }
+            if (activeCategory === 'sobremesas') {
+              return item.category === 'sobremesas';
+            }
+            return item.category === activeCategory;
+          })();
+
           const matchSearch = !searchQuery || 
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (item.tag && item.tag.toLowerCase().includes(searchQuery.toLowerCase()));
