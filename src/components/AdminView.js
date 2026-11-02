@@ -114,6 +114,18 @@ export function renderAdminView(container, onNavigateTable) {
             </div>
           </div>
 
+          <div class="form-field" style="margin-top: 12px; margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+              <span class="switch-ui">
+                <input type="checkbox" id="cat-active-checkbox" ${catToEdit?.active !== false ? 'checked' : ''} />
+                <span class="switch-track"></span>
+              </span>
+              <span style="font-size: 0.86rem; font-weight: 600; color: var(--text-main);">
+                Categoria ativa (visível para clientes no cardápio)
+              </span>
+            </label>
+          </div>
+
           <div id="cat-error-msg" style="color: var(--accent-red); font-size: 0.82rem; font-weight: 700; display: none;"></div>
 
           <div style="display: flex; gap: 10px; margin-top: 8px;">
@@ -156,6 +168,7 @@ export function renderAdminView(container, onNavigateTable) {
       e.preventDefault();
       const label = modal.querySelector('#cat-name').value.trim();
       const icon = iconInput.value.trim() || '🍽️';
+      const active = modal.querySelector('#cat-active-checkbox').checked;
       const errorMsg = modal.querySelector('#cat-error-msg');
 
       if (!label) {
@@ -165,12 +178,13 @@ export function renderAdminView(container, onNavigateTable) {
       }
 
       if (isEdit) {
-        store.updateCategory(catToEdit.id, { label, icon });
+        store.updateCategory(catToEdit.id, { label, icon, active });
         showToast(`Categoria "${label}" atualizada!`, '🏷️');
         closeModal();
+        if (onCreatedCallback) onCreatedCallback();
         update();
       } else {
-        const created = store.addCategory({ label, icon });
+        const created = store.addCategory({ label, icon, active });
         showToast(`Categoria "${label}" criada com sucesso!`, '✨');
         closeModal();
         if (onCreatedCallback && created) {
@@ -260,6 +274,7 @@ export function renderAdminView(container, onNavigateTable) {
 
     function renderContent() {
       const categories = store.getCategories();
+      const activeCount = categories.filter(c => c.active !== false).length;
 
       modal.innerHTML = `
         <div class="admin-modal-card" style="max-width: 580px;">
@@ -275,7 +290,7 @@ export function renderAdminView(container, onNavigateTable) {
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
             <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">
-              Categorias Ativas (${categories.length})
+              Categorias (${activeCount} ativas de ${categories.length})
             </span>
             <div style="display: flex; gap: 8px;">
               <button id="btn-create-new-cat" class="admin-btn-primary" style="padding: 6px 14px; font-size: 0.82rem;">
@@ -294,16 +309,24 @@ export function renderAdminView(container, onNavigateTable) {
               </div>
             ` : categories.map(cat => {
               const count = store.getDishesCountForCategory(cat.id);
+              const isActive = cat.active !== false;
               return `
-                <div class="cat-manager-item">
+                <div class="cat-manager-item ${isActive ? '' : 'is-disabled'}" data-id="${cat.id}">
                   <div class="cat-item-left">
                     <span class="cat-item-icon">${cat.icon}</span>
                     <div class="cat-item-info">
-                      <span class="cat-item-name">${cat.label}</span>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="cat-item-name">${cat.label}</span>
+                        ${!isActive ? `<span class="cat-status-badge-inactive">Oculta</span>` : ''}
+                      </div>
                       <span class="cat-item-count">${count} ${count === 1 ? 'prato vinculado' : 'pratos vinculados'}</span>
                     </div>
                   </div>
-                  <div class="cat-item-actions">
+                  <div class="cat-item-actions" style="display: flex; align-items: center; gap: 10px;">
+                    <label class="switch-ui" title="${isActive ? 'Desativar categoria (ocultar do cardápio)' : 'Ativar categoria (exibir no cardápio)'}">
+                      <input type="checkbox" class="cat-toggle-checkbox" data-id="${cat.id}" ${isActive ? 'checked' : ''} />
+                      <span class="switch-track"></span>
+                    </label>
                     <button class="admin-btn-action btn-edit cat-edit-btn" data-id="${cat.id}" style="padding: 6px 10px; font-size: 0.75rem;">
                       ✏️ Editar
                     </button>
@@ -332,13 +355,28 @@ export function renderAdminView(container, onNavigateTable) {
       };
 
       modal.querySelector('#btn-reset-cats').onclick = () => {
-        if (confirm('Deseja restaurar as 4 categorias padrão originais?')) {
+        if (confirm('Deseja restaurar as categorias padrão originais?')) {
           store.resetCategoriesToDefault();
           showToast('Categorias restauradas ao padrão original!', '↺');
           renderContent();
           update();
         }
       };
+
+      modal.querySelectorAll('.cat-toggle-checkbox').forEach(chk => {
+        chk.onchange = (e) => {
+          e.stopPropagation();
+          const catId = chk.dataset.id;
+          const newStatus = store.toggleCategoryActive(catId);
+          const cat = categories.find(c => c.id === catId);
+          showToast(
+            newStatus ? `Categoria "${cat?.label || ''}" ativada!` : `Categoria "${cat?.label || ''}" desativada e oculta dos clientes.`,
+            newStatus ? '👁️' : '🙈'
+          );
+          renderContent();
+          update();
+        };
+      });
 
       modal.querySelectorAll('.cat-edit-btn').forEach(btn => {
         btn.onclick = () => {
@@ -1182,7 +1220,7 @@ export function renderAdminView(container, onNavigateTable) {
               ✨ + Cadastrar Novo Prato
             </button>
             <button id="btn-open-cat-manager" class="admin-btn-secondary" title="Gerenciar e criar novas categorias">
-              🏷️ Gerenciar Categorias (${currentCategories.length})
+              🏷️ Gerenciar Categorias (${currentCategories.filter(c => c.active !== false).length}/${currentCategories.length} ativas)
             </button>
             <button id="btn-reset-menu" class="admin-btn-secondary" title="Restaurar pratos originais caso necessário">
               ↺ Restaurar Pratos
@@ -1193,13 +1231,16 @@ export function renderAdminView(container, onNavigateTable) {
         <div class="admin-toolbar-row" style="margin-top: -4px;">
           <!-- Filtro por Categoria Dinâmica -->
           <div class="admin-filter-bar">
-            ${allCategoryFilters.map(cat => `
+            ${allCategoryFilters.map(cat => {
+              const isInactive = cat.id !== 'todos' && cat.active === false;
+              return `
               <button 
-                class="admin-filter-pill ${selectedCategory === cat.id ? 'active' : ''}" 
-                data-cat="${cat.id}">
-                ${cat.icon} ${cat.label}
+                class="admin-filter-pill ${selectedCategory === cat.id ? 'active' : ''} ${isInactive ? 'cat-pill-inactive' : ''}" 
+                data-cat="${cat.id}"
+                title="${isInactive ? 'Categoria desativada (oculta no cardápio dos clientes)' : ''}">
+                ${cat.icon} ${cat.label}${isInactive ? ' 🙈' : ''}
               </button>
-            `).join('')}
+            `;}).join('')}
             <button id="btn-quick-add-cat-pill" class="admin-filter-pill" style="border-style: dashed; color: var(--primary);" title="Criar nova categoria">
               + Categoria
             </button>

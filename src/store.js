@@ -87,13 +87,15 @@ const mapCategoryToRow = (cat, idx) => ({
   id: cat.id,
   label: cat.label,
   icon: cat.icon || '🍽️',
+  active: cat.active !== false,
   order_index: idx !== undefined ? idx : 0
 });
 
 const mapRowToCategory = (row) => ({
   id: row.id,
   label: row.label,
-  icon: row.icon || '🍽️'
+  icon: row.icon || '🍽️',
+  active: row.active !== false
 });
 
 const mapProfileToRow = (profile) => ({
@@ -1198,7 +1200,7 @@ class Store {
     return this.categories;
   }
 
-  addCategory({ label, icon }) {
+  addCategory({ label, icon, active }) {
     const cleanLabel = (label || '').trim();
     if (!cleanLabel) return null;
 
@@ -1218,7 +1220,8 @@ class Store {
     const newCategory = {
       id: finalId,
       label: cleanLabel,
-      icon: (icon || '🍽️').trim()
+      icon: (icon || '🍽️').trim(),
+      active: active !== undefined ? Boolean(active) : true
     };
 
     this.categories.push(newCategory);
@@ -1232,18 +1235,44 @@ class Store {
     return newCategory;
   }
 
-  updateCategory(categoryId, { label, icon }) {
+  isCategoryActive(categoryId) {
+    if (!categoryId || categoryId === 'todos') return true;
+    if (categoryId === 'pratos') {
+      const main = this.categories.find(c => c.id === 'principais' || c.id === 'pratos');
+      return main ? main.active !== false : true;
+    }
+    const cat = this.categories.find(c => c.id === categoryId);
+    return cat ? cat.active !== false : true;
+  }
+
+  toggleCategoryActive(categoryId) {
+    const cat = this.categories.find(c => c.id === categoryId);
+    if (!cat) return null;
+
+    cat.active = cat.active === false ? true : false;
+    this.saveCategories();
+    this.broadcast('SYNC', { action: 'CATEGORIES_UPDATED', categoryId });
+
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('categories').update({ active: cat.active }).eq('id', categoryId).catch(console.error);
+    }
+
+    return cat.active;
+  }
+
+  updateCategory(categoryId, { label, icon, active }) {
     const cat = this.categories.find(c => c.id === categoryId);
     if (!cat) return null;
 
     if (label !== undefined) cat.label = label.trim();
     if (icon !== undefined) cat.icon = (icon || '🍽️').trim();
+    if (active !== undefined) cat.active = Boolean(active);
 
     this.saveCategories();
     this.broadcast('SYNC', { action: 'CATEGORIES_UPDATED', categoryId });
 
     if (isSupabaseConfigured && supabase) {
-      supabase.from('categories').update({ label: cat.label, icon: cat.icon }).eq('id', categoryId).catch(console.error);
+      supabase.from('categories').update({ label: cat.label, icon: cat.icon, active: cat.active }).eq('id', categoryId).catch(console.error);
     }
 
     return cat;

@@ -337,14 +337,48 @@ export function renderClientView(tableNumber, container) {
       !['cafe', 'pratos', 'principais', 'almoco', 'bebidas', 'sobremesas', 'todos'].includes(c.id)
     );
 
-    const displayCategories = [
-      requestedCategories[0], // Café
-      requestedCategories[1], // Pratos
-      ...extraCategories,     // ex: Pizzas
-      requestedCategories[2], // Bebidas
-      requestedCategories[3], // Sobremesa
-      requestedCategories[4]  // Todos
-    ];
+    // Monta a lista de tags visíveis apenas para categorias ativas
+    const displayCategories = [];
+
+    // 1. Café
+    if (store.isCategoryActive('cafe')) {
+      displayCategories.push(requestedCategories[0]);
+    }
+
+    // 2. Pratos (exibe se ao menos uma subcategoria de prato estiver ativa)
+    if (
+      store.isCategoryActive('pratos') ||
+      store.isCategoryActive('principais') ||
+      store.isCategoryActive('almoco') ||
+      store.isCategoryActive('entradas')
+    ) {
+      displayCategories.push(requestedCategories[1]);
+    }
+
+    // 3. Categorias extras ativas (ex: Pizzas, Lanches, etc.)
+    extraCategories.forEach(extra => {
+      if (extra.active !== false) {
+        displayCategories.push(extra);
+      }
+    });
+
+    // 4. Bebidas
+    if (store.isCategoryActive('bebidas')) {
+      displayCategories.push(requestedCategories[2]);
+    }
+
+    // 5. Sobremesa
+    if (store.isCategoryActive('sobremesas')) {
+      displayCategories.push(requestedCategories[3]);
+    }
+
+    // 6. Todos (sempre presente para navegação geral)
+    displayCategories.push(requestedCategories[4]);
+
+    // Se a categoria selecionada foi desativada, recua suavemente para 'todos'
+    if (activeCategory !== 'todos' && !displayCategories.some(c => c.id === activeCategory)) {
+      activeCategory = 'todos';
+    }
 
     const catBar = document.createElement('div');
     catBar.className = 'categories-circle-bar';
@@ -377,6 +411,11 @@ export function renderClientView(tableNumber, container) {
 
       const filteredMenu = store.menu
         .filter(item => {
+          // Oculta pratos de categorias desativadas pelo administrador
+          if (!store.isCategoryActive(item.category)) {
+            return false;
+          }
+
           const matchCat = (() => {
             if (activeCategory === 'todos') return true;
             if (activeCategory === 'pratos') {
