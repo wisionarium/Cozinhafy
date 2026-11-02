@@ -287,6 +287,98 @@ export function renderClientView(tableNumber, container) {
       container.appendChild(trackerEl);
     }
 
+    // --- 2.3 BANNERS HORIZONTAIS ASSIMÉTRICOS (MAIS PEDIDOS & OS MELHORES EM CONTRAFLUXO) ---
+    const activeDishesForBanners = store.menu.filter(d => d.available !== false && store.isCategoryActive(d.category));
+
+    const maisPedidos = activeDishesForBanners.filter(d => 
+      (d.tag && (d.tag.toLowerCase().includes('mais pedido') || d.tag.toLowerCase().includes('destaque') || d.tag.toLowerCase().includes('irresistível'))) ||
+      ['prato-1', 'prato-2', 'pizza-1', 'cafe-1', 'prato-pf-1'].includes(d.id)
+    );
+    if (maisPedidos.length < 3) {
+      activeDishesForBanners.forEach(d => {
+        if (!maisPedidos.some(m => m.id === d.id) && maisPedidos.length < 5) {
+          maisPedidos.push(d);
+        }
+      });
+    }
+
+    const osMelhores = activeDishesForBanners.filter(d => 
+      !maisPedidos.some(m => m.id === d.id) && (
+        (d.tag && (d.tag.toLowerCase().includes('chef') || d.tag.toLowerCase().includes('especial') || d.tag.toLowerCase().includes('cremoso') || d.tag.toLowerCase().includes('harmonização') || d.tag.toLowerCase().includes('tradicional'))) ||
+        ['prato-3', 'entrada-1', 'sobremesa-1', 'cafe-2', 'bebida-2', 'pizza-2'].includes(d.id)
+      )
+    );
+    if (osMelhores.length < 3) {
+      activeDishesForBanners.forEach(d => {
+        if (!maisPedidos.some(m => m.id === d.id) && !osMelhores.some(o => o.id === d.id) && osMelhores.length < 5) {
+          osMelhores.push(d);
+        }
+      });
+    }
+
+    function renderMarqueeChips(dishes) {
+      return dishes.map(dish => `
+        <button type="button" class="marquee-dish-chip" data-dish-id="${dish.id}" title="Pedir ${dish.name}">
+          <img src="${dish.image}" alt="${dish.name}" class="marquee-chip-img" loading="lazy" onerror="this.src='/images/hero.jpg'" />
+          <div class="marquee-chip-info">
+            <span class="marquee-chip-name">${dish.name}</span>
+            <span class="marquee-chip-price">R$ ${dish.price.toFixed(2).replace('.', ',')}</span>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    if (maisPedidos.length > 0 && osMelhores.length > 0) {
+      const highlightsContainer = document.createElement('div');
+      highlightsContainer.className = 'home-highlights-container';
+      highlightsContainer.innerHTML = `
+        <!-- Faixa 1: Mais Pedidos (Vindo da Direita para a Esquerda) -->
+        <div class="banner-marquee-row banner-row-right">
+          <div class="banner-badge badge-mais-pedidos">
+            <span class="badge-icon">🔥</span>
+            <span class="badge-label">Mais Pedidos</span>
+          </div>
+          <div class="banner-marquee-viewport">
+            <div class="banner-marquee-track scroll-to-left">
+              ${renderMarqueeChips(maisPedidos)}
+              ${renderMarqueeChips(maisPedidos)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Faixa 2: Os Melhores (Vindo da Esquerda para a Direita) -->
+        <div class="banner-marquee-row banner-row-left">
+          <div class="banner-badge badge-os-melhores">
+            <span class="badge-icon">⭐</span>
+            <span class="badge-label">Os Melhores</span>
+          </div>
+          <div class="banner-marquee-viewport">
+            <div class="banner-marquee-track scroll-to-right">
+              ${renderMarqueeChips(osMelhores)}
+              ${renderMarqueeChips(osMelhores)}
+            </div>
+          </div>
+        </div>
+      `;
+
+      highlightsContainer.querySelectorAll('.marquee-dish-chip').forEach(chip => {
+        chip.onclick = (e) => {
+          e.stopPropagation();
+          const dishId = chip.dataset.dishId;
+          const dish = store.menu.find(d => d.id === dishId);
+          if (dish) openDishModal(dish);
+        };
+      });
+
+      const tracks = highlightsContainer.querySelectorAll('.banner-marquee-track');
+      tracks.forEach(track => {
+        track.addEventListener('touchstart', () => track.classList.add('is-paused'), { passive: true });
+        track.addEventListener('touchend', () => track.classList.remove('is-paused'), { passive: true });
+      });
+
+      container.appendChild(highlightsContainer);
+    }
+
     // --- 2.5 BARRA DE BUSCA RÁPIDA (VISUAL MODERNO) ---
     const searchBar = document.createElement('div');
     searchBar.className = 'menu-search-bar';

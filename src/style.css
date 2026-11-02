@@ -550,6 +550,182 @@ body {
 }
 
 /* ==========================================================
+   BANNERS ASSIMÉTRICOS EM CONTRAFLUXO (MAIS PEDIDOS & OS MELHORES)
+   ========================================================== */
+
+.home-highlights-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px -14px 14px -14px;
+  overflow: hidden;
+}
+
+.banner-marquee-row {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Faixa 1: Vindo da Direita para a Esquerda (Canto esquerdo arredondado, encostada à borda direita) */
+.banner-row-right {
+  margin-left: 22px;
+  margin-right: 0;
+  border-radius: 999px 0 0 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: none;
+  padding-left: 8px;
+}
+
+/* Faixa 2: Vindo da Esquerda para a Direita (Canto direito arredondado, encostada à borda esquerda) */
+.banner-row-left {
+  margin-left: 0;
+  margin-right: 22px;
+  border-radius: 0 999px 999px 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: none;
+  padding-left: 12px;
+}
+
+.banner-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.badge-mais-pedidos {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-os-melhores {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.banner-marquee-viewport {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+}
+
+.banner-marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  will-change: transform;
+}
+
+/* Animação Contínua em Contrafluxo */
+.scroll-to-left {
+  animation: marquee-scroll-left 26s linear infinite;
+}
+
+.scroll-to-right {
+  animation: marquee-scroll-right 26s linear infinite;
+}
+
+@keyframes marquee-scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-scroll-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.banner-marquee-row:hover .banner-marquee-track,
+.banner-marquee-viewport:active .banner-marquee-track,
+.banner-marquee-track.is-paused {
+  animation-play-state: paused;
+}
+
+/* Mini Cards de Pratos dentro da Esteira */
+.marquee-dish-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 4px 12px 4px 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.marquee-dish-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.marquee-dish-chip:active {
+  transform: scale(0.97);
+}
+
+.marquee-chip-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.marquee-chip-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 1px;
+}
+
+.marquee-chip-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marquee-chip-price {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+/* ==========================================================
    BARRA DE BUSCA RÁPIDA (MODERNA & MINIMALISTA)
    ========================================================== */
 .menu-search-bar {
