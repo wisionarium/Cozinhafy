@@ -53,10 +53,6 @@ body {
   min-height: 100vh;
   line-height: 1.5;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(245, 158, 11, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.04) 0%, transparent 40%);
-  background-attachment: fixed;
 }
 
 /* Scrollbar estilizada */
@@ -284,20 +280,20 @@ body {
 }
 
 .active-order-tracker:hover {
-  border-color: rgba(245, 158, 11, 0.45);
+  border-color: rgba(255, 255, 255, 0.16);
   background: rgba(26, 32, 46, 0.98);
   transform: translateY(-2px);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
 }
 
 .active-order-tracker.is-ready {
-  border-color: rgba(16, 185, 129, 0.5);
-  background: linear-gradient(145deg, rgba(22, 27, 38, 0.98), rgba(16, 185, 129, 0.1));
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(22, 27, 38, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .active-order-tracker.is-ready:hover {
-  border-color: rgba(16, 185, 129, 0.8);
+  border-color: rgba(52, 211, 153, 0.6);
 }
 
 .tracker-footer-row {
@@ -353,13 +349,13 @@ body {
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .tracker-comanda-solid-full:hover {
   background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
 .tracker-comanda-solid-full:active {
@@ -538,18 +534,18 @@ body {
 
 /* Estado Ativo da Categoria Circular */
 .cat-circle-btn.active .cat-circle-icon-wrap {
-  background: linear-gradient(135deg, var(--primary), #fbbf24);
+  background: var(--primary);
   border-color: transparent;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.42);
-  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transform: scale(1.05);
 }
 
 .cat-circle-btn.active .cat-circle-icon {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .cat-circle-btn.active .cat-circle-label {
-  color: var(--primary);
+  color: #ffffff;
   font-weight: 800;
 }
 
@@ -589,9 +585,9 @@ body {
 }
 
 .search-input-wrap .menu-search-input:focus {
-  border-color: var(--primary);
+  border-color: rgba(255, 255, 255, 0.25);
   background: rgba(28, 35, 48, 0.95);
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18);
+  box-shadow: none;
 }
 
 .search-input-wrap .search-clear-btn {
@@ -650,9 +646,9 @@ body {
 
 .dish-card-visual:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(245, 158, 11, 0.35);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .dish-card-visual:active {
@@ -811,7 +807,7 @@ body {
   font-size: 0.7rem;
 }
 
-/* Rodapé do Card com Preço e Botão de Ação */
+/* Rodapé do Card com Preço e Texto de Ação ("Ver" / "Escolher") */
 .dish-visual-footer {
   display: flex;
   align-items: center;
@@ -820,46 +816,35 @@ body {
   margin-top: 10px;
 }
 
-.dish-visual-price-pill {
-  background: rgba(16, 185, 129, 0.16);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #34d399;
+.dish-clean-price {
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  padding: 5px 9px;
-  border-radius: 9px;
-  letter-spacing: -0.2px;
+  color: #f8fafc;
+  letter-spacing: -0.3px;
   white-space: nowrap;
 }
 
-.dish-visual-action-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-main);
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dish-action-text {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
+  transition: all 0.2s ease;
+  user-select: none;
   cursor: pointer;
-  transition: all 0.18s ease;
-  flex-shrink: 0;
-  font-size: 1.1rem;
-  line-height: 1;
 }
 
-.dish-card-visual:hover .dish-visual-action-btn {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #000;
-  transform: scale(1.08);
+.dish-card-visual:hover .dish-action-text {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.dish-visual-action-btn.btn-disabled {
+.dish-action-text.is-disabled {
   opacity: 0.4;
-  cursor: default;
+  color: var(--text-dim);
+  text-decoration: none;
 }
 
 /* Estado Vazio de Busca */
@@ -893,7 +878,7 @@ body {
 
 .dish-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: rgba(255, 255, 255, 0.16);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }

@@ -466,12 +466,12 @@ export function renderClientView(tableNumber, container) {
             </div>
 
             <div class="dish-visual-footer">
-              <span class="dish-visual-price-pill">
+              <span class="dish-clean-price">
                 R$ ${dish.price.toFixed(2).replace('.', ',')}
               </span>
-              <button class="dish-visual-action-btn ${!isAvailable ? 'btn-disabled' : ''}" type="button" title="${isAvailable ? (dish.hasCustomOptions ? 'Montar prato' : 'Ver detalhes e pedir') : 'Item esgotado'}" ${!isAvailable ? 'disabled' : ''}>
-                ${isAvailable ? (dish.hasCustomOptions ? '⚙️' : '↗') : '✕'}
-              </button>
+              <span class="dish-action-text ${!isAvailable ? 'is-disabled' : ''}">
+                ${isAvailable ? (dish.hasCustomOptions ? 'Escolher' : 'Ver') : 'Esgotado'}
+              </span>
             </div>
           </div>
         `;
