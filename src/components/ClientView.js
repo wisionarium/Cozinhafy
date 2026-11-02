@@ -258,11 +258,9 @@ export function renderClientView(tableNumber, container) {
             </div>
           </div>
 
-          <div class="tracker-footer-row" style="margin-top: 10px;">
-            <span style="font-size: 0.78rem; color: var(--text-muted);">
-              Deseja mais alguma coisa? Continue pedindo normalmente.
-            </span>
-            <button class="tracker-comanda-badge" id="btn-quick-comanda-view" type="button" title="Clique para abrir a comanda">
+          <!-- Botão de Comanda Full sem contorno e cor sólida -->
+          <div style="margin-top: 12px;">
+            <button class="tracker-comanda-solid-full" id="btn-quick-comanda-view" type="button" title="Clique para abrir a comanda">
               📜 Comanda: R$ ${tableTotal.toFixed(2).replace('.', ',')} ➔
             </button>
           </div>
