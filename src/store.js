@@ -234,6 +234,47 @@ class Store {
       this.saveMenu();
     }
 
+    // Assegura que a categoria Pizzas exista
+    if (!this.categories.some(c => c.id === 'pizzas')) {
+      const idx = this.categories.findIndex(c => c.id === 'principais');
+      if (idx !== -1) {
+        this.categories.splice(idx + 1, 0, { id: 'pizzas', label: 'Pizzas', icon: '🍕' });
+      } else {
+        this.categories.push({ id: 'pizzas', label: 'Pizzas', icon: '🍕' });
+      }
+      this.saveCategories();
+    }
+
+    // Assegura que haja pizzas de exemplo no cardápio
+    if (!this.menu.some(m => m.category === 'pizzas')) {
+      const samplePizzas = [
+        {
+          id: 'pizza-1',
+          name: 'Pizza Pepperoni Nobre',
+          category: 'pizzas',
+          price: 58.90,
+          description: 'Massa artesanal de fermentação lenta 48h, molho de tomate pelati italiano, mozzarella fatiada e pepperoni crocante.',
+          image: '/images/hero.jpg',
+          tag: 'Mais Pedida 🍕',
+          prepTime: '15-20 min',
+          available: true
+        },
+        {
+          id: 'pizza-2',
+          name: 'Pizza Margherita Clássica',
+          category: 'pizzas',
+          price: 52.90,
+          description: 'Molho de tomate fresco, mozzarella fior di latte, manjericão colhido na hora e azeite extravirgem.',
+          image: '/images/bruschetta.jpg',
+          tag: 'Tradicional 🇮🇹',
+          prepTime: '15-20 min',
+          available: true
+        }
+      ];
+      this.menu.push(...samplePizzas);
+      this.saveMenu();
+    }
+
     // Inicializa perfil do restaurante
     const storedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
     if (!storedProfile) {
@@ -269,6 +310,10 @@ class Store {
     } catch {
       this.billRequests = {};
     }
+
+    // Limpeza automática imediata de pedidos esquecidos e solicitações de conta (> 3 horas)
+    this.cleanupOldOrders(3);
+    setInterval(() => this.cleanupOldOrders(3), 5 * 60 * 1000);
 
     // Escuta sincronizações vindas de outras abas
     if (channel) {
@@ -774,9 +819,25 @@ class Store {
     return false;
   }
 
-  getBillRequestForTable(table) {
+  getBillRequestForTable(table, sessionId = null) {
     const padTable = String(table).padStart(2, '0');
-    return this.billRequests[padTable] || null;
+    const req = this.billRequests[padTable];
+    if (!req) return null;
+
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+    // Se a solicitação foi feita há mais de 3 horas, expira e limpa
+    if (!req.requestedAt || (Date.now() - req.requestedAt > THREE_HOURS)) {
+      delete this.billRequests[padTable];
+      this.saveBillRequests();
+      return null;
+    }
+
+    // Se um sessionId foi informado, a solicitação só é visível para a mesma sessão do cliente
+    if (sessionId && req.sessionId && req.sessionId !== sessionId) {
+      return null;
+    }
+
+    return req;
   }
 
   getAllBillRequests() {

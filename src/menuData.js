@@ -77,6 +77,28 @@ export const INITIAL_MENU = [
     available: true
   },
   {
+    id: 'pizza-1',
+    name: 'Pizza Pepperoni Nobre',
+    category: 'pizzas',
+    price: 58.90,
+    description: 'Massa artesanal de fermentação lenta 48h, molho de tomate pelati italiano, mozzarella fatiada e pepperoni crocante.',
+    image: '/images/hero.jpg',
+    tag: 'Mais Pedida 🍕',
+    prepTime: '15-20 min',
+    available: true
+  },
+  {
+    id: 'pizza-2',
+    name: 'Pizza Margherita Clássica',
+    category: 'pizzas',
+    price: 52.90,
+    description: 'Molho de tomate fresco, mozzarella fior di latte, manjericão colhido na hora e azeite extravirgem.',
+    image: '/images/bruschetta.jpg',
+    tag: 'Tradicional 🇮🇹',
+    prepTime: '15-20 min',
+    available: true
+  },
+  {
     id: 'prato-pf-1',
     name: 'Prato Feito Clássico (Bife Acebolado)',
     category: 'almoco',
@@ -107,6 +129,7 @@ export const INITIAL_MENU = [
 export const INITIAL_CATEGORIES = [
   { id: 'almoco', label: 'Almoço', icon: '🍛' },
   { id: 'principais', label: 'Pratos Principais', icon: '🥩' },
+  { id: 'pizzas', label: 'Pizzas', icon: '🍕' },
   { id: 'entradas', label: 'Entradas', icon: '🥖' },
   { id: 'bebidas', label: 'Bebidas', icon: '🍹' },
   { id: 'sobremesas', label: 'Sobremesas', icon: '🍨' }

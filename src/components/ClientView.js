@@ -22,12 +22,21 @@ function getOrCreateClientSession(table) {
   const now = Date.now();
   const THREE_HOURS = 3 * 60 * 60 * 1000;
 
-  // Lógica de Expiração Automática (Hard Timeout de 3 horas ou após entrega)
+  // Lógica de Expiração Automática (Hard Timeout de 3 horas, virada de dia, ou após entrega)
   let shouldExpire = false;
   if (session) {
-    // 1. HARD TIMEOUT: Passaram mais de 3 horas desde a abertura da visita -> EXPIRA SEMPRE (mesmo com pedidos esquecidos)
+    // 1. HARD TIMEOUT: Passaram mais de 3 horas desde a abertura da visita -> EXPIRA SEMPRE
     if (session.startedAt && (now - session.startedAt > THREE_HOURS)) {
       shouldExpire = true;
+    }
+
+    // 2. MUDANÇA DE DATA: Se a sessão foi aberta ontem ou em outro dia civil -> EXPIRA SEMPRE (inicia novo dia limpo)
+    if (session.startedAt) {
+      const sessionDate = new Date(session.startedAt).toDateString();
+      const todayDate = new Date(now).toDateString();
+      if (sessionDate !== todayDate) {
+        shouldExpire = true;
+      }
     }
 
     if (!shouldExpire) {
@@ -35,14 +44,17 @@ function getOrCreateClientSession(table) {
       const allDone = sessionOrders.length > 0 && sessionOrders.every(o => o.status === 'pronto');
       const latestOrder = sessionOrders[0];
 
-      // Se todos os pedidos foram entregues e passaram mais de 45 minutos desde a entrega:
-      if (allDone && latestOrder?.completedAt && (now - latestOrder.completedAt > 45 * 60 * 1000)) {
+      // Se todos os pedidos foram entregues e passaram mais de 30 minutos desde a entrega:
+      if (allDone && latestOrder?.completedAt && (now - latestOrder.completedAt > 30 * 60 * 1000)) {
         shouldExpire = true;
       }
     }
   }
 
   if (!session || shouldExpire) {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+    } catch (e) {}
     session = {
       sessionId: 'sess_' + now + '_' + Math.random().toString(36).substring(2, 7),
       table: padTable,
@@ -61,6 +73,24 @@ export function renderClientView(tableNumber, container) {
   let selectedDish = null;
   let isCartOpen = false;
   const dismissedOrderIds = new Set();
+
+  let favorites = new Set();
+  try {
+    favorites = new Set(JSON.parse(localStorage.getItem('bistro_client_favorites') || '[]'));
+  } catch (e) {}
+
+  function toggleFavorite(dishId, e) {
+    if (e) e.stopPropagation();
+    if (favorites.has(dishId)) {
+      favorites.delete(dishId);
+    } else {
+      favorites.add(dishId);
+    }
+    try {
+      localStorage.setItem('bistro_client_favorites', JSON.stringify(Array.from(favorites)));
+    } catch (err) {}
+    update();
+  }
 
   function update() {
     container.innerHTML = '';
@@ -128,8 +158,8 @@ export function renderClientView(tableNumber, container) {
       comandaBtn.onclick = () => renderComandaModal();
     }
 
-    // --- 1.1 BANNER DE CONTA SOLICITADA (SE HOUVER) ---
-    const activeBillReq = store.getBillRequestForTable(tableNumber);
+    // --- 1.1 BANNER DE CONTA SOLICITADA (SE HOUVER NA SESSÃO ATUAL) ---
+    const activeBillReq = store.getBillRequestForTable(tableNumber, sessionId);
     if (activeBillReq) {
       const billNotice = document.createElement('div');
       billNotice.className = 'bill-requested-banner';
@@ -259,12 +289,45 @@ export function renderClientView(tableNumber, container) {
       container.appendChild(trackerEl);
     }
 
+    // --- 2.5 BARRA DE BUSCA RÁPIDA (VISUAL MODERNO) ---
+    const searchBar = document.createElement('div');
+    searchBar.className = 'menu-search-bar';
+    searchBar.innerHTML = `
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          class="menu-search-input" 
+          placeholder="Buscar pratos, lanches, bebidas..." 
+          value="${searchQuery}" 
+          id="menu-search-input" 
+          autocomplete="off"
+        />
+        ${searchQuery ? '<button class="search-clear-btn" id="btn-clear-search" type="button" title="Limpar busca">✕</button>' : ''}
+      </div>
+    `;
+    container.appendChild(searchBar);
+
+    const searchInput = searchBar.querySelector('#menu-search-input');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        searchQuery = e.target.value;
+        renderCardsOnly();
+      };
+    }
+    const clearSearchBtn = searchBar.querySelector('#btn-clear-search');
+    if (clearSearchBtn) {
+      clearSearchBtn.onclick = () => {
+        searchQuery = '';
+        update();
+      };
+    }
+
     // --- 3. BARRA DE CATEGORIAS DINÂMICAS ---
     const dynamicCategories = [
       { id: 'todos', label: 'Todos', icon: '🍽️' },
       ...store.getCategories()
     ];
-
 
     const catBar = document.createElement('div');
     catBar.className = 'categories-bar';
@@ -280,56 +343,122 @@ export function renderClientView(tableNumber, container) {
     });
     container.appendChild(catBar);
 
-    // --- 4. LISTA DE PRATOS ---
-    const menuList = document.createElement('div');
-    menuList.className = 'menu-list';
+    // --- 4. GRID VISUAL EM 2 COLUNAS (CONFORME IMAGEM DE REFERÊNCIA) ---
+    const menuGrid = document.createElement('div');
+    menuGrid.className = 'menu-grid';
+    menuGrid.id = 'menu-grid-container';
 
-    const filteredMenu = store.menu
-      .filter(item => {
-        const matchCat = activeCategory === 'todos' || item.category === activeCategory;
-        const matchSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchCat && matchSearch;
-      })
-      .sort((a, b) => {
-        const aAvail = a.available !== false ? 1 : 0;
-        const bAvail = b.available !== false ? 1 : 0;
-        // Disponíveis primeiro (1), Esgotados por último (0)
-        return bAvail - aAvail;
+    function renderCardsOnly() {
+      menuGrid.innerHTML = '';
+
+      const filteredMenu = store.menu
+        .filter(item => {
+          const matchCat = activeCategory === 'todos' || item.category === activeCategory;
+          const matchSearch = !searchQuery || 
+            item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.tag && item.tag.toLowerCase().includes(searchQuery.toLowerCase()));
+          return matchCat && matchSearch;
+        })
+        .sort((a, b) => {
+          const aAvail = a.available !== false ? 1 : 0;
+          const bAvail = b.available !== false ? 1 : 0;
+          return bAvail - aAvail;
+        });
+
+      if (filteredMenu.length === 0) {
+        menuGrid.innerHTML = `
+          <div class="menu-empty-state">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🍽️</div>
+            <div style="font-weight: 700; font-size: 1rem; color: var(--text-main);">Nenhum prato encontrado</div>
+            <div style="font-size: 0.82rem; margin-top: 4px; color: var(--text-muted);">
+              ${searchQuery ? `Não achamos itens para "${searchQuery}".` : 'Nenhum item nesta categoria.'}
+            </div>
+            ${searchQuery ? `
+              <button class="dev-btn" id="btn-empty-reset" style="margin: 14px auto 0; padding: 6px 16px;">
+                Limpar Busca
+              </button>
+            ` : ''}
+          </div>
+        `;
+        const resetBtn = menuGrid.querySelector('#btn-empty-reset');
+        if (resetBtn) {
+          resetBtn.onclick = () => {
+            searchQuery = '';
+            update();
+          };
+        }
+        return;
+      }
+
+      filteredMenu.forEach(dish => {
+        const isAvailable = dish.available !== false;
+        const isFav = favorites.has(dish.id);
+        const card = document.createElement('div');
+        card.className = `dish-card-visual ${!isAvailable ? 'is-unavailable' : ''}`;
+        
+        card.innerHTML = `
+          <div class="dish-visual-thumb">
+            <img class="dish-visual-img lazy-dish" data-src="${dish.image}" alt="${dish.name}" loading="lazy" />
+            
+            <div class="dish-time-badge" title="Tempo estimado de preparo">
+              ⏱ ${dish.prepTime || '15-20 min'}
+            </div>
+
+            <button class="dish-fav-btn ${isFav ? 'is-fav' : ''}" type="button" title="${isFav ? 'Remover dos favoritos' : 'Salvar nos favoritos'}">
+              ${isFav ? '❤️' : '🤍'}
+            </button>
+
+            ${!isAvailable ? `
+              <div class="dish-badge-unavailable-overlay">
+                <span class="dish-badge-unavailable-pill">Esgotado</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="dish-visual-body">
+            <div>
+              <h3 class="dish-visual-title" title="${dish.name}">${dish.name}</h3>
+              <div class="dish-visual-rating">
+                <span class="star">★</span>
+                <span class="rating-num">4.8</span>
+                <span class="reviews-count">(120+)</span>
+              </div>
+            </div>
+
+            <div class="dish-visual-footer">
+              <span class="dish-visual-price-pill">
+                R$ ${dish.price.toFixed(2).replace('.', ',')}
+              </span>
+              <button class="dish-visual-action-btn ${!isAvailable ? 'btn-disabled' : ''}" type="button" title="${isAvailable ? (dish.hasCustomOptions ? 'Montar prato' : 'Ver detalhes e pedir') : 'Item esgotado'}" ${!isAvailable ? 'disabled' : ''}>
+                ${isAvailable ? (dish.hasCustomOptions ? '⚙️' : '↗') : '✕'}
+              </button>
+            </div>
+          </div>
+        `;
+
+        // Botão de Favorito
+        const favBtn = card.querySelector('.dish-fav-btn');
+        if (favBtn) {
+          favBtn.onclick = (e) => {
+            toggleFavorite(dish.id, e);
+          };
+        }
+
+        // Clique no card abre o modal de customização/pedido
+        card.onclick = (e) => {
+          if (e.target.closest('.dish-fav-btn')) return;
+          if (!isAvailable) return;
+          openDishModal(dish);
+        };
+
+        menuGrid.appendChild(card);
       });
 
-    filteredMenu.forEach(dish => {
-      const isAvailable = dish.available !== false;
-      const card = document.createElement('div');
-      card.className = `dish-card ${!isAvailable ? 'is-unavailable' : ''}`;
-      card.innerHTML = `
-        <div class="dish-thumb-wrap">
-          <img class="dish-img lazy-dish" data-src="${dish.image}" alt="${dish.name}" loading="lazy" />
-          ${!isAvailable ? '<div class="dish-badge-esgotado">Esgotado</div>' : ''}
-        </div>
-        <div class="dish-info">
-          <div>
-            ${dish.tag ? `<div class="dish-tag">${dish.tag}</div>` : ''}
-            <h3 class="dish-name">${dish.name}</h3>
-            <p class="dish-desc">${dish.description}</p>
-          </div>
-          <div class="dish-footer">
-            <span class="dish-price">R$ ${dish.price.toFixed(2).replace('.', ',')}</span>
-            <button class="btn-add-mini ${!isAvailable ? 'btn-disabled' : ''}" data-id="${dish.id}" ${!isAvailable ? 'disabled' : ''}>
-              ${isAvailable ? (dish.hasCustomOptions ? 'Montar' : '+ Adicionar') : '✕ Esgotado'}
-            </button>
-          </div>
-        </div>
-      `;
+      setupLazyPrefetch(menuGrid);
+    }
 
-      card.onclick = (e) => {
-        if (!isAvailable) return;
-        openDishModal(dish);
-      };
-
-      menuList.appendChild(card);
-    });
-
-    container.appendChild(menuList);
+    renderCardsOnly();
+    container.appendChild(menuGrid);
 
     // --- 5. BARRA FLUTUANTE DE CARRINHO ---
     if (cartCount > 0) {

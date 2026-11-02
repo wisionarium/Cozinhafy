@@ -426,6 +426,337 @@ body {
   box-shadow: none;
 }
 
+/* ==========================================================
+   BARRA DE BUSCA RÁPIDA (MODERNA & MINIMALISTA)
+   ========================================================== */
+.menu-search-bar {
+  padding: 8px 16px 4px;
+}
+
+.search-input-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrap .search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 0.95rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.search-input-wrap .menu-search-input {
+  width: 100%;
+  background: rgba(22, 27, 38, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 10px 38px 10px 40px;
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.search-input-wrap .menu-search-input:focus {
+  border-color: var(--primary);
+  background: rgba(28, 35, 48, 0.95);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18);
+}
+
+.search-input-wrap .search-clear-btn {
+  position: absolute;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.search-input-wrap .search-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ==========================================================
+   GRID DE 2 COLUNAS VISUAL (BASEADO NA IMAGEM DE REFERÊNCIA)
+   ========================================================== */
+.menu-grid {
+  padding: 12px 14px 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 600px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px 20px 48px;
+  }
+}
+
+@media (min-width: 900px) {
+  .menu-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .menu-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Card Visual do Prato */
+.dish-card-visual {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.22s ease;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dish-card-visual:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(245, 158, 11, 0.35);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.dish-card-visual:active {
+  transform: scale(0.98);
+}
+
+/* Container de Imagem do Card */
+.dish-visual-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #141824;
+  overflow: hidden;
+}
+
+.dish-visual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+  display: block;
+}
+
+.dish-card-visual:hover .dish-visual-img {
+  transform: scale(1.06);
+}
+
+/* Tag de Tempo (canto superior esquerdo) */
+.dish-time-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(12, 15, 23, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #f1f5f9;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Botão de Favorito (canto superior direito) */
+.dish-fav-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(12, 15, 23, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  font-size: 0.85rem;
+  z-index: 2;
+  color: #fff;
+}
+
+.dish-fav-btn:hover {
+  transform: scale(1.15);
+  background: rgba(12, 15, 23, 0.9);
+}
+
+.dish-fav-btn.is-fav {
+  color: #ef4444;
+}
+
+/* Overlay de Esgotado */
+.dish-card-visual.is-unavailable {
+  opacity: 0.6;
+  filter: grayscale(0.4);
+}
+
+.dish-card-visual.is-unavailable:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-subtle);
+}
+
+.dish-badge-unavailable-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 15, 23, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.dish-badge-unavailable-pill {
+  background: rgba(239, 68, 68, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+/* Corpo do Card: Visual, Título e Avaliação */
+.dish-visual-body {
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+.dish-visual-title {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.3rem;
+}
+
+.dish-visual-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.dish-visual-rating .star {
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+
+.dish-visual-rating .rating-num {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.dish-visual-rating .reviews-count {
+  opacity: 0.65;
+  font-size: 0.7rem;
+}
+
+/* Rodapé do Card com Preço e Botão de Ação */
+.dish-visual-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dish-visual-price-pill {
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 800;
+  padding: 5px 9px;
+  border-radius: 9px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.dish-visual-action-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.dish-card-visual:hover .dish-visual-action-btn {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #000;
+  transform: scale(1.08);
+}
+
+.dish-visual-action-btn.btn-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Estado Vazio de Busca */
+.menu-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
 /* Lista de Itens do Cardápio */
 .menu-list {
   padding: 8px 16px;
