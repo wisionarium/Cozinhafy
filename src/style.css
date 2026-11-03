@@ -470,12 +470,28 @@ body {
 .categories-circle-bar {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  justify-content: center;
+  gap: clamp(10px, 3vw, 18px);
   overflow-x: auto;
   padding: 10px 16px 14px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@supports (justify-content: safe center) {
+  .categories-circle-bar {
+    justify-content: safe center;
+  }
+}
+
+.categories-circle-bar::before,
+.categories-circle-bar::after {
+  content: '';
+  margin: auto;
+  flex: 0 0 auto;
 }
 
 .categories-circle-bar::-webkit-scrollbar {
